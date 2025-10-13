@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #736ecc;
+  --brand-dark: #5f59c0;
+  --bg: #f5f7fb;
+}
+html, body { height: 100%; }
+body { background: var(--bg); }
+.card { @apply bg-white rounded-2xl p-4 shadow-lg; }
+.btn { @apply inline-flex items-center justify-center px-3 py-2 rounded-xl shadow text-sm font-medium; }
+.btn-primary { @apply text-white; background: var(--brand); }
+.btn-primary:hover { background: var(--brand-dark); }
+.btn-ghost { @apply bg-white border border-gray-200; }
