@@ -29,11 +29,11 @@ export default function HomePage() {
       {/* HERO */}
       <section className="rounded-3xl bg-gradient-to-r from-[#736ecc] to-[#7d86e1] text-white p-8 sm:p-12 shadow-lg">
         <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
-          Kursbio — карточки по биологии, конспекты и годовой курс
+          Kursbio: карточки по биологии, конспекты и годовой курс
         </h1>
         <p className="mt-4 text-white/90 max-w-2xl">
-          Учись быстро и без боли. На карточках — вопрос/ответ; в конспектах — только
-          нужное; на курсе — системная подготовка.
+          Учись быстро и без боли. На карточках — вопрос/ответ, в конспектах — только
+          нужное, на курсе — системная подготовка.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -70,34 +70,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* БЫСТРЫЕ ССЫЛКИ */}
+      {/* БЫСТРЫЙ СТАРТ — только 2 плитки */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Быстрый старт</h2>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <QuickLink
-            title="Биология как наука — темы"
+            title="Карточки по темам"
             href="/cards/biology/science"
             desc="Науки, методы, уровни организации и признаки живого."
           />
           <QuickLink
-            title="Науки"
-            href="/cards/biology/science/bio-science-nauki"
-            desc="Вопрос — на обороте название науки."
-          />
-          <QuickLink
-            title="Методы"
-            href="/cards/biology/science/bio-science-metody"
-            desc="Вопрос — на обороте название метода."
-          />
-          <QuickLink
-            title="Уровни организации"
-            href="/cards/biology/science/bio-science-urovni"
-            desc="Вопрос — на обороте название уровня."
+            title="Избранные"
+            href="/cards/favorites"
+            desc="Сохранённые карточки — всегда под рукой."
           />
         </div>
       </section>
 
-      {/* ПРЕИМУЩЕСТВА — обновлённые тексты */}
+      {/* ПРЕИМУЩЕСТВА — тексты с коротким дефисом */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Почему это удобно</h2>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
