@@ -1,17 +1,11 @@
 'use client';
-import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="w-full bg-[#736ecc] text-white sticky top-0 z-40">
-      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="font-bold tracking-tight">
-          Kursbio Карточки
-        </Link>
-        <nav className="flex items-center gap-2">
-          <Link href="/favorites" className="btn btn-ghost !text-white">Избранные</Link>
-          <Link href="/admin" className="btn btn-ghost !text-white">Админка</Link>
-        </nav>
+    <header className="sticky top-0 z-40 bg-[#6f69d9] text-white">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <div className="font-semibold text-lg">Kursbio Карточки</div>
+        {/* если понадобятся кнопки — добавим позже; пока ничего не рендерим справа */}
       </div>
     </header>
   );
