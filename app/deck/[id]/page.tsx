@@ -15,13 +15,13 @@ type Card = {
   image_url: string | null;
   section: string | null;
   topic: string | null;
-  seq: number;                 // ← номер карточки
+  seq: number;
 };
 
 type Deck = {
   id: string;
   title: string;
-  slug: string;                // ← slug колоды
+  slug: string;
   description: string | null;
   is_public: boolean;
   cta_primary_text: string | null;
@@ -35,6 +35,7 @@ export default function DeckView() {
 
   const [deck, setDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
+  const [siblings, setSiblings] = useState<Deck[]>([]);
   const [filter, setFilter] = useState<{ section?: string; topic?: string }>({});
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
@@ -67,10 +68,26 @@ export default function DeckView() {
         .from('cards')
         .select('id, front, back, image_url, section, topic, seq')
         .eq('deck_id', params.id)
-        .order('seq', { ascending: true });           // ← по номеру
+        .order('seq', { ascending: true });
       setCards((data as Card[]) || []);
     })();
   }, [params.id]);
+
+  // соседние темы «Биология как наука»
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('decks')
+        .select('id, title, slug')
+        .in('slug', [
+          'bio-science-nauki',
+          'bio-science-metody',
+          'bio-science-urovni',
+          'bio-science-priznaki'
+        ]);
+      setSiblings((data as Deck[]) || []);
+    })();
+  }, []);
 
   // сессия
   useEffect(() => {
@@ -121,9 +138,13 @@ export default function DeckView() {
   const thirdText     = 'Приобрести конспекты';
   const thirdUrl      = 'https://kursbio.com/book';
 
+  // заголовок темы (последняя часть title после «→»)
+  const topicTitle = deck?.title?.split('→').pop()?.trim();
+
   return (
     <div className="space-y-6 font-[Inter]">
-      <TopNav section="Общая биология / Биология как наука" topic={filter.topic ?? null} />
+      {/* Хлебные крошки */}
+      <TopNav topic={topicTitle || undefined} />
       <div ref={topRef} />
 
       {/* Шапка + CTA */}
@@ -138,6 +159,23 @@ export default function DeckView() {
             <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn">{secondaryText}</a>
             <a href={thirdUrl} target="_blank" rel="noreferrer" className="btn">{thirdText}</a>
           </div>
+        </div>
+
+        {/* Быстрые ссылки на другие темы раздела */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(siblings || [])
+            .sort((a,b) => a.title.localeCompare(b.title))
+            .map(s => (
+              <Link
+                key={s.id}
+                href={`/deck/${s.id}`}
+                className={`px-3 py-1 rounded-full border hover:bg-gray-50 text-sm ${
+                  s.id === deck?.id ? 'bg-gray-100 border-gray-300' : ''
+                }`}
+              >
+                {s.title.split('→').pop()?.trim()}
+              </Link>
+          ))}
         </div>
       </div>
 
@@ -175,7 +213,7 @@ export default function DeckView() {
         </div>
       </div>
 
-      {/* Сетка */}
+      {/* Сетка карточек */}
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
@@ -189,7 +227,6 @@ export default function DeckView() {
                 openCardId={openCardId}
                 setOpenCardId={setOpenCardId}
               />
-              {/* Красивый SEO-URL: /d/<deck.slug>/<card.seq> */}
               {deck?.slug && c.seq && (
                 <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
                   Открыть карточку (SEO) — №{c.seq}
@@ -277,7 +314,6 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* Центровка по вертикали + учёт картинки */}
           <div className="h-full flex flex-col items-center justify-center gap-4 pt-8 text-center">
             {c.image_url && (
               <img src={c.image_url} className="rounded-xl max-h-48 object-contain" alt="" />
