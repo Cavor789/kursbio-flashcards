@@ -26,7 +26,6 @@ export default function Home() {
 
         {/* CTA-кнопки */}
         <div className="mt-4 flex flex-wrap gap-3">
-          {/* ВАЖНО: без /cards в href — Next сам добавит basePath */}
           <Link href="/biology/science" className="btn btn-white">
             Перейти к карточкам
           </Link>
