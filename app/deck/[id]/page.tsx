@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -39,9 +39,13 @@ export default function DeckView() {
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
-  const [openCardId, setOpenCardId] = useState<string | null>(null); // только одна открыта
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
 
-  // загрузка колоды (для CTA)
+  // ref, чтобы прокручивать «вверх» при клике на фильтры
+  const topRef = useRef<HTMLDivElement | null>(null);
+  const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // загрузка колоды (CTA)
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -114,15 +118,20 @@ export default function DeckView() {
   }, [cards]);
 
   // CTA с фолбэками
-  const primaryText = deck?.cta_primary_text ?? 'Забрать конспект';
-  const primaryUrl  = deck?.cta_primary_url  ?? 'https://t.me/kursbio/11017';
+  const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
+  const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
   const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
   const secondaryUrl  = deck?.cta_secondary_url  ?? 'https://kursbio.com/godege';
+  const thirdText     = 'Приобрести конспекты';
+  const thirdUrl      = 'https://kursbio.com/book';
 
   return (
     <div className="space-y-6 font-[Inter]">
       {/* Верхняя навигация */}
       <TopNav section="Общая биология / Биология как наука" topic={filter.topic ?? null} />
+
+      {/* Якорь для скролла наверх */}
+      <div ref={topRef} />
 
       {/* Заголовок колоды + CTA */}
       <div className="card">
@@ -131,26 +140,19 @@ export default function DeckView() {
             <div className="text-xl font-semibold">
               {deck?.title ?? 'Колода'}
             </div>
-            {deck?.description && (
-              <div className="text-sm text-gray-500">{deck.description}</div>
-            )}
+            <div className="text-sm text-gray-500">
+              На лицевой стороне — вопрос, на обороте — ответ.
+            </div>
           </div>
           <div className="flex gap-2">
-            <a
-              href={primaryUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-primary"
-            >
+            <a href={primaryUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
               {primaryText}
             </a>
-            <a
-              href={secondaryUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn"
-            >
+            <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn">
               {secondaryText}
+            </a>
+            <a href={thirdUrl} target="_blank" rel="noreferrer" className="btn">
+              {thirdText}
             </a>
           </div>
         </div>
@@ -169,7 +171,10 @@ export default function DeckView() {
                 : 'Все карточки'}
             </div>
           </div>
-          <button className="btn btn-ghost text-sm" onClick={() => setFilter({})}>
+          <button
+            className="btn btn-ghost text-sm"
+            onClick={() => { setFilter({}); scrollToTop(); }}
+          >
             Сброс
           </button>
         </div>
@@ -179,7 +184,7 @@ export default function DeckView() {
             <div key={sec} className="border rounded-xl p-2">
               <button
                 className="w-full text-left font-medium"
-                onClick={() => setFilter({ section: sec })}
+                onClick={() => { setFilter({ section: sec }); scrollToTop(); }}
               >
                 {sec}
               </button>
@@ -187,7 +192,7 @@ export default function DeckView() {
                 {[...topics].map((t) => (
                   <button
                     key={sec + t}
-                    onClick={() => setFilter({ section: sec, topic: t })}
+                    onClick={() => { setFilter({ section: sec, topic: t }); scrollToTop(); }}
                     className={`px-2 py-1 text-sm rounded-lg ${
                       filter.topic === t
                         ? 'bg-[#736ecc] text-white'
@@ -312,25 +317,38 @@ function FlipCard({
       >
         {/* FRONT */}
         <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
+          {/* Кнопка избранного поверх, не мешает выравниванию */}
           <button
             onClick={toggleFav}
-            className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow"
+            className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow pointer-events-auto"
+            aria-label={isFav ? 'Убрать из избранного' : 'В избранное'}
           >
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">{c.front}</div>
-
-          {c.image_url && (
-            <img src={c.image_url} className="mt-4 rounded-xl w-full max-h-80 object-contain" alt="" />
-          )}
-
-          <div className="mt-4 text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
+          {/* Контент карточки по центру по вертикали (учитывает картинку) */}
+          <div className="h-full flex flex-col items-center justify-center gap-4 pt-8 text-center">
+            {c.image_url && (
+              <img
+                src={c.image_url}
+                className="rounded-xl max-h-48 object-contain"
+                alt=""
+              />
+            )}
+            <div className="font-semibold text-base sm:text-lg text-gray-800">
+              {c.front}
+            </div>
+            <div className="text-xs text-gray-500">Нажмите, чтобы перевернуть</div>
+          </div>
         </div>
 
         {/* BACK */}
         <div className={`absolute inset-0 p-5 [backface-visibility:hidden] ${backRotationClass}`}>
-          <div className="text-gray-800 text-base leading-relaxed">{c.back}</div>
+          <div className="h-full flex items-center justify-center">
+            <div className="text-gray-800 text-base leading-relaxed text-center">
+              {c.back}
+            </div>
+          </div>
         </div>
       </div>
     </div>
