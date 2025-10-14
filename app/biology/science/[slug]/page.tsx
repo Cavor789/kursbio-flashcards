@@ -41,23 +41,17 @@ export default function ScienceTopicPage() {
   const topRef = useRef<HTMLDivElement | null>(null);
   const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // текущая колода
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('decks')
-        .select(`
-          id, title, slug, description,
-          cta_primary_text, cta_primary_url,
-          cta_secondary_text, cta_secondary_url
-        `)
+        .select('id, title, slug, description, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url')
         .eq('slug', slug)
         .single();
       setDeck(data as Deck);
     })();
   }, [slug]);
 
-  // карточки (весь набор, без вложенных фильтров)
   useEffect(() => {
     (async () => {
       if (!deck?.id) return;
@@ -70,7 +64,6 @@ export default function ScienceTopicPage() {
     })();
   }, [deck?.id]);
 
-  // четыре темы-соседа
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -86,7 +79,6 @@ export default function ScienceTopicPage() {
     })();
   }, []);
 
-  // сессия
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -98,7 +90,6 @@ export default function ScienceTopicPage() {
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
-  // избранное
   async function loadFavorites(u: any) {
     if (!u) { setFavSet(new Set()); return; }
     const { data } = await supabase.from('favorites').select('card_id').eq('user_id', u.id);
@@ -106,7 +97,6 @@ export default function ScienceTopicPage() {
   }
   useEffect(() => { loadFavorites(user); }, [user]);
 
-  // CTA
   const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
   const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
   const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
@@ -136,7 +126,7 @@ export default function ScienceTopicPage() {
         </div>
       </div>
 
-      {/* ЕДИНСТВЕННЫЕ фильтры: 4 темы общей биологии (активная — фиолетовая) */}
+      {/* Темы общей биологии */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -171,21 +161,16 @@ export default function ScienceTopicPage() {
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((c) => (
-            <div key={c.id} className="flex flex-col">
-              <FlipCard
-                c={c}
-                user={user}
-                favSet={favSet}
-                setFavSet={setFavSet}
-                setFavOpen={setFavOpen}
-                openCardId={openCardId}
-                setOpenCardId={setOpenCardId}
-              />
-              {/* Нумерация без кликабельной SEO-ссылки */}
-              {typeof c.seq === 'number' && (
-                <div className="mt-2 text-sm text-gray-400 text-center">№{c.seq}</div>
-              )}
-            </div>
+            <FlipCard
+              key={c.id}
+              c={c}
+              user={user}
+              favSet={favSet}
+              setFavSet={setFavSet}
+              setFavOpen={setFavOpen}
+              openCardId={openCardId}
+              setOpenCardId={setOpenCardId}
+            />
           ))}
         </div>
         {cards.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек.</div>}
@@ -196,7 +181,6 @@ export default function ScienceTopicPage() {
   );
 }
 
-/* -------- карточка -------- */
 function FlipCard({
   c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
 }: {
