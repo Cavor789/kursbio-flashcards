@@ -15,13 +15,13 @@ type Card = {
   image_url: string | null;
   section: string | null;
   topic: string | null;
-  cta_text: string | null;
-  cta_url: string | null;
+  seq: number;                 // ← номер карточки
 };
 
 type Deck = {
   id: string;
   title: string;
+  slug: string;                // ← slug колоды
   description: string | null;
   is_public: boolean;
   cta_primary_text: string | null;
@@ -41,17 +41,16 @@ export default function DeckView() {
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
   const [openCardId, setOpenCardId] = useState<string | null>(null);
 
-  // ref, чтобы прокручивать «вверх» при клике на фильтры
   const topRef = useRef<HTMLDivElement | null>(null);
   const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // загрузка колоды (CTA)
+  // колода
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('decks')
         .select(`
-          id, title, description, is_public,
+          id, title, slug, description, is_public,
           cta_primary_text, cta_primary_url,
           cta_secondary_text, cta_secondary_url
         `)
@@ -61,19 +60,19 @@ export default function DeckView() {
     })();
   }, [params.id]);
 
-  // загрузка карточек
+  // карточки
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('cards')
-        .select('*')
+        .select('id, front, back, image_url, section, topic, seq')
         .eq('deck_id', params.id)
-        .order('created_at', { ascending: false });
+        .order('seq', { ascending: true });           // ← по номеру
       setCards((data as Card[]) || []);
     })();
   }, [params.id]);
 
-  // сессия пользователя
+  // сессия
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -88,10 +87,7 @@ export default function DeckView() {
   // избранное
   async function loadFavorites(u: any) {
     if (!u) { setFavSet(new Set()); return; }
-    const { data } = await supabase
-      .from('favorites')
-      .select('card_id')
-      .eq('user_id', u.id);
+    const { data } = await supabase.from('favorites').select('card_id').eq('user_id', u.id);
     setFavSet(new Set((data || []).map((r: any) => r.card_id)));
   }
   useEffect(() => { loadFavorites(user); }, [user]);
@@ -117,7 +113,7 @@ export default function DeckView() {
     return s;
   }, [cards]);
 
-  // CTA с фолбэками
+  // CTA (с фолбэками)
   const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
   const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
   const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
@@ -127,33 +123,20 @@ export default function DeckView() {
 
   return (
     <div className="space-y-6 font-[Inter]">
-      {/* Верхняя навигация */}
       <TopNav section="Общая биология / Биология как наука" topic={filter.topic ?? null} />
-
-      {/* Якорь для скролла наверх */}
       <div ref={topRef} />
 
-      {/* Заголовок колоды + CTA */}
+      {/* Шапка + CTA */}
       <div className="card">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <div className="text-xl font-semibold">
-              {deck?.title ?? 'Колода'}
-            </div>
-            <div className="text-sm text-gray-500">
-              На лицевой стороне — вопрос, на обороте — ответ.
-            </div>
+            <div className="text-xl font-semibold">{deck?.title ?? 'Колода'}</div>
+            <div className="text-sm text-gray-500">На лицевой стороне — вопрос, на обороте — ответ.</div>
           </div>
           <div className="flex gap-2">
-            <a href={primaryUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
-              {primaryText}
-            </a>
-            <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn">
-              {secondaryText}
-            </a>
-            <a href={thirdUrl} target="_blank" rel="noreferrer" className="btn">
-              {thirdText}
-            </a>
+            <a href={primaryUrl} target="_blank" rel="noreferrer" className="btn btn-primary">{primaryText}</a>
+            <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn">{secondaryText}</a>
+            <a href={thirdUrl} target="_blank" rel="noreferrer" className="btn">{thirdText}</a>
           </div>
         </div>
       </div>
@@ -164,28 +147,16 @@ export default function DeckView() {
           <div>
             <div className="text-lg font-semibold">Фильтры</div>
             <div className="text-sm text-gray-500">
-              {filter.section
-                ? filter.topic
-                  ? `${filter.section} / ${filter.topic}`
-                  : filter.section
-                : 'Все карточки'}
+              {filter.section ? (filter.topic ? `${filter.section} / ${filter.topic}` : filter.section) : 'Все карточки'}
             </div>
           </div>
-          <button
-            className="btn btn-ghost text-sm"
-            onClick={() => { setFilter({}); scrollToTop(); }}
-          >
-            Сброс
-          </button>
+          <button className="btn btn-ghost text-sm" onClick={() => { setFilter({}); scrollToTop(); }}>Сброс</button>
         </div>
 
         <div className="mt-4 flex flex-col gap-3">
           {Object.entries(sections).map(([sec, topics]) => (
             <div key={sec} className="border rounded-xl p-2">
-              <button
-                className="w-full text-left font-medium"
-                onClick={() => { setFilter({ section: sec }); scrollToTop(); }}
-              >
+              <button className="w-full text-left font-medium" onClick={() => { setFilter({ section: sec }); scrollToTop(); }}>
                 {sec}
               </button>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -193,11 +164,7 @@ export default function DeckView() {
                   <button
                     key={sec + t}
                     onClick={() => { setFilter({ section: sec, topic: t }); scrollToTop(); }}
-                    className={`px-2 py-1 text-sm rounded-lg ${
-                      filter.topic === t
-                        ? 'bg-[#736ecc] text-white'
-                        : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
+                    className={`px-2 py-1 text-sm rounded-lg ${filter.topic === t ? 'bg-[#736ecc] text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                   >
                     {t}
                   </button>
@@ -208,7 +175,7 @@ export default function DeckView() {
         </div>
       </div>
 
-      {/* Сетка карточек */}
+      {/* Сетка */}
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
@@ -222,19 +189,16 @@ export default function DeckView() {
                 openCardId={openCardId}
                 setOpenCardId={setOpenCardId}
               />
-              {/* SEO-ссылка на отдельную страницу карточки */}
-              <Link
-                href={`/card/${c.id}`}
-                className="mt-2 inline-block text-sm text-[#736ecc] hover:underline"
-              >
-                Открыть карточку (SEO)
-              </Link>
+              {/* Красивый SEO-URL: /d/<deck.slug>/<card.seq> */}
+              {deck?.slug && c.seq && (
+                <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
+                  Открыть карточку (SEO) — №{c.seq}
+                </Link>
+              )}
             </div>
           ))}
         </div>
-        {filtered.length === 0 && (
-          <div className="text-gray-500 mt-2 text-center">Нет карточек по фильтру.</div>
-        )}
+        {filtered.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек по фильтру.</div>}
       </section>
 
       <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
@@ -246,8 +210,7 @@ export default function DeckView() {
 function FlipCard({
   c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
 }: {
-  c: Card;
-  user: any;
+  c: Card; user: any;
   favSet: Set<string>;
   setFavSet: (s: Set<string>) => void;
   setFavOpen: (v: boolean) => void;
@@ -258,16 +221,10 @@ function FlipCard({
   const dirs = ['left', 'right', 'up', 'down'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
 
-  useEffect(() => {
-    if (openCardId !== c.id && flip) setFlip(false);
-  }, [openCardId, flip, c.id]);
-
+  useEffect(() => { if (openCardId !== c.id && flip) setFlip(false); }, [openCardId, flip, c.id]);
   useEffect(() => {
     if (!flip) return;
-    const t = setTimeout(() => {
-      setFlip(false);
-      if (openCardId === c.id) setOpenCardId(null);
-    }, 15000);
+    const t = setTimeout(() => { setFlip(false); if (openCardId === c.id) setOpenCardId(null); }, 15000);
     return () => clearTimeout(t);
   }, [flip, openCardId, c.id, setOpenCardId]);
 
@@ -295,29 +252,23 @@ function FlipCard({
   }
 
   const containerFlipClass =
-    flip
-      ? dir === 'left' || dir === 'right'
-        ? '[transform:rotateY(180deg)]'
-        : dir === 'up'
-          ? '[transform:rotateX(180deg)]'
-          : '[transform:rotateX(-180deg)]'
-      : '';
-
-  const backRotationClass =
-    dir === 'left' || dir === 'right'
+    flip ? (dir === 'left' || dir === 'right'
       ? '[transform:rotateY(180deg)]'
-      : '[transform:rotateX(180deg)]';
+      : dir === 'up'
+        ? '[transform:rotateX(180deg)]'
+        : '[transform:rotateX(-180deg)]') : '';
+
+  const backRotationClass = (dir === 'left' || dir === 'right')
+    ? '[transform:rotateY(180deg)]'
+    : '[transform:rotateX(180deg)]';
 
   return (
     <div className="h-full [perspective:1200px]" onClick={doFlip}>
-      <div
-        className={`relative h-full min-h-[360px] cursor-pointer
+      <div className={`relative h-full min-h-[360px] cursor-pointer
           rounded-2xl bg-white shadow-[0_6px_20px_rgba(0,0,0,0.08)]
-          [transform-style:preserve-3d] transition-transform duration-500 ${containerFlipClass}`}
-      >
+          [transform-style:preserve-3d] transition-transform duration-500 ${containerFlipClass}`}>
         {/* FRONT */}
         <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
-          {/* Кнопка избранного поверх, не мешает выравниванию */}
           <button
             onClick={toggleFav}
             className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow pointer-events-auto"
@@ -326,14 +277,10 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* Контент карточки по центру по вертикали (учитывает картинку) */}
+          {/* Центровка по вертикали + учёт картинки */}
           <div className="h-full flex flex-col items-center justify-center gap-4 pt-8 text-center">
             {c.image_url && (
-              <img
-                src={c.image_url}
-                className="rounded-xl max-h-48 object-contain"
-                alt=""
-              />
+              <img src={c.image_url} className="rounded-xl max-h-48 object-contain" alt="" />
             )}
             <div className="font-semibold text-base sm:text-lg text-gray-800">
               {c.front}
