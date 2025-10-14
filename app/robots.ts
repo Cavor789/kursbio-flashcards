@@ -1,4 +1,7 @@
 export default function robots() {
-  const host = 'https://kursbio-flashcards.vercel.app';
-  return { rules: [{ userAgent: '*', allow: '/' }], sitemap: `${host}/sitemap.xml` };
+  const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://kursbio.ru';
+  return {
+    rules: { userAgent: '*', allow: '/' },
+    sitemap: `${BASE}/cards/sitemap.xml`,
+  };
 }
