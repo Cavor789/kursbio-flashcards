@@ -1,273 +1,121 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Heart } from 'lucide-react';
-import AuthEmailModal from '@/components/AuthEmailModal';
 
-type Card = {
+type Deck = {
   id: string;
-  front: string;
-  back: string;
-  image_url: string | null;
-  section: string | null;
-  topic: string | null;
-  cta_text: string | null;
-  cta_url: string | null;
+  title: string;
+  slug: string;
+  description: string | null;
+  is_public: boolean;
 };
 
+const ORDER = ['Науки', 'Методы', 'Уровни организации', 'Признаки живого'] as const;
+
+function labelFromTitle(title: string) {
+  const raw = title.split('→').pop()?.trim() ?? title;
+  return raw.replace(/\s*\(.*\)\s*$/, '');
+}
+
 export default function BioCardsPage() {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [filter, setFilter] = useState<{ section?: string; topic?: string }>({});
-  const [user, setUser] = useState<any>(null);
-  const [favOpen, setFavOpen] = useState(false);
-  const [favSet, setFavSet] = useState<Set<string>>(new Set());
+  const [all, setAll] = useState<Deck[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [topic, setTopic] = useState<string | null>(null);
 
-  // загрузка карточек (только "Общая биология")
+  // загрузка 4 тем биологии как науки
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from('cards')
-        .select('*')
-        .eq('section', 'Общая биология')   // <- фиксируем набор для /cards/bio
-        .order('created_at', { ascending: false });
-      if (!error) setCards(data || []);
+      setLoading(true);
+      const { data } = await supabase
+        .from('decks')
+        .select('id,title,slug,description,is_public')
+        .like('title', 'Общая биология → Биология как наука →%');
+
+      const list = (data || [])
+        .filter((d: any) => d.is_public)
+        .sort((a: Deck, b: Deck) => {
+          const la = labelFromTitle(a.title);
+          const lb = labelFromTitle(b.title);
+          const ia = ORDER.indexOf(la as any);
+          const ib = ORDER.indexOf(lb as any);
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          return la.localeCompare(lb);
+        });
+
+      setAll(list);
+      setLoading(false);
     })();
   }, []);
 
-  // сессия пользователя (будет запоминаться благодаря persistSession)
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-    })();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) =>
-      setUser(sess?.user || null)
-    );
-    return () => { sub.subscription.unsubscribe(); };
-  }, []);
+  const topics = ORDER.filter(t => all.some(d => labelFromTitle(d.title) === t));
+  const filtered = topic ? all.filter(d => labelFromTitle(d.title) === topic) : all;
 
-  // избранное
-  async function loadFavorites(u: any) {
-    if (!u) { setFavSet(new Set()); return; }
-    const { data } = await supabase
-      .from('favorites')
-      .select('card_id')
-      .eq('user_id', u.id);
-    setFavSet(new Set((data || []).map((r: any) => r.card_id)));
+  function reset() {
+    setTopic(null);
   }
-  useEffect(() => { loadFavorites(user); }, [user]);
-
-  // фильтрация
-  const filtered = useMemo(() => {
-    return cards.filter(
-      (c) =>
-        (!filter.section || (c.section || '') === filter.section) &&
-        (!filter.topic || (c.topic || '') === filter.topic)
-    );
-  }, [cards, filter]);
-
-  // сбор разделов/тем для фильтров
-  const sections = useMemo(() => {
-    const s: Record<string, Set<string>> = {};
-    for (const c of cards) {
-      const sec = c.section || 'Без раздела';
-      const top = c.topic || 'Без темы';
-      if (!s[sec]) s[sec] = new Set();
-      s[sec].add(top);
-    }
-    return s;
-  }, [cards]);
 
   return (
-    <div className="space-y-6">
-      {/* Баннер «Войдите в аккаунт» */}
-      {!user && (
-        <div className="card">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="font-semibold">Войдите в аккаунт</div>
-              <div className="text-sm text-gray-500">
-                Чтобы сохранять избранные карточки — войдите или зарегистрируйтесь.
-              </div>
-            </div>
-            <button className="btn btn-primary" onClick={() => setFavOpen(true)}>
-              Войти / Регистрация
-            </button>
-          </div>
-        </div>
-      )}
+    <main className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* хлебные крошки */}
+      <div className="text-sm text-gray-600">
+        <span className="font-medium">Карточки</span>
+        <span className="text-gray-400"> / </span>
+        <span className="hover:underline text-[#736ecc]">Общая биология</span>
+      </div>
 
-      {/* Фильтры */}
+      <h1 className="text-2xl font-semibold">Биология как наука — темы</h1>
+
+      {/* фильтры */}
       <div className="card">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
-            <div className="text-lg font-semibold">Фильтры</div>
-            <div className="text-sm text-gray-500">
-              {filter.section
-                ? filter.topic
-                  ? `${filter.section} / ${filter.topic}`
-                  : filter.section
-                : 'Все карточки'}
-            </div>
+            <div className="text-lg font-semibold">Общая биология / Биология как наука</div>
+            <div className="text-sm text-gray-500">Выберите тему</div>
           </div>
-          <button className="btn btn-ghost text-sm" onClick={() => setFilter({})}>
+          <button className="btn btn-ghost text-sm" onClick={reset} disabled={!topic}>
             Сброс
           </button>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          {Object.entries(sections).map(([sec, topics]) => (
-            <div key={sec} className="border rounded-xl p-2">
+        <div className="mt-3 flex flex-wrap gap-2">
+          {topics.map(t => {
+            const active = topic === t;
+            return (
               <button
-                className="w-full text-left font-medium"
-                onClick={() => setFilter({ section: sec })}
+                key={t}
+                onClick={() => setTopic(t)}
+                className={`px-3 py-1 rounded-lg text-sm border ${
+                  active ? 'bg-[#736ecc] text-white border-transparent' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
               >
-                {sec}
+                {t}
               </button>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {[...topics].map((t) => (
-                  <button
-                    key={sec + t}
-                    onClick={() => setFilter({ section: sec, topic: t })}
-                    className={`px-2 py-1 text-sm rounded-lg ${
-                      filter.topic === t
-                        ? 'bg-[#736ecc] text-white'
-                        : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Сетка карточек */}
-      <section>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((c) => (
-            <FlipCard
-              key={c.id}
-              c={c}
-              user={user}
-              favSet={favSet}
-              setFavSet={setFavSet}
-              setFavOpen={setFavOpen}
-            />
-          ))}
-        </div>
-        {filtered.length === 0 && (
-          <div className="text-gray-500 mt-2 text-center">Нет карточек по фильтру.</div>
+      {/* плитки тем */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {loading && <div className="text-gray-500">Загрузка…</div>}
+        {!loading && filtered.length === 0 && (
+          <div className="text-gray-500">Нет тем.</div>
         )}
-      </section>
-
-      {/* Промо-блок под карточками */}
-      <div className="card text-center">
-        <div className="text-lg font-semibold">Полезные материалы по теме</div>
-        <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
-          <a href="/conspect" className="btn btn-primary">Забрать конспект</a>
-          <a href="/course" className="btn">Записаться на годовой курс</a>
-        </div>
-      </div>
-
-      <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
-    </div>
-  );
-}
-
-/* ---------- карточка ---------- */
-function FlipCard({
-  c, user, favSet, setFavSet, setFavOpen
-}: {
-  c: Card;
-  user: any;
-  favSet: Set<string>;
-  setFavSet: (s: Set<string>) => void;
-  setFavOpen: (v: boolean) => void;
-}) {
-  const [flip, setFlip] = useState(false);
-
-  // 4 направления, но текст всегда ровный
-  const dirs = ['left', 'right', 'up', 'down'] as const;
-  const [dir, setDir] = useState<typeof dirs[number]>('left');
-
-  // авто-закрытие только автоматическое — 10 секунд
-  useEffect(() => {
-    if (!flip) return;
-    const t = setTimeout(() => setFlip(false), 10000);
-    return () => clearTimeout(t);
-  }, [flip]);
-
-  const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
-  useEffect(() => { setIsFav(favSet.has(c.id)); }, [favSet, c.id]);
-
-  async function toggleFav(e: any) {
-    e.stopPropagation();
-    if (!user) { setFavOpen(true); return; }
-    if (isFav) {
-      await supabase.from('favorites').delete().eq('card_id', c.id).eq('user_id', user.id);
-      const ns = new Set(favSet); ns.delete(c.id); setFavSet(ns);
-    } else {
-      await supabase.from('favorites').insert({ card_id: c.id, user_id: user.id });
-      const ns = new Set(favSet); ns.add(c.id); setFavSet(ns);
-    }
-  }
-
-  function doFlip() {
-    const d = dirs[Math.floor(Math.random() * dirs.length)];
-    setDir(d);
-    setFlip((f) => !f);
-  }
-
-  const containerFlipClass =
-    flip
-      ? dir === 'left' || dir === 'right'
-        ? '[transform:rotateY(180deg)]'
-        : dir === 'up'
-          ? '[transform:rotateX(180deg)]'
-          : '[transform:rotateX(-180deg)]'
-      : '';
-
-  const backRotationClass =
-    dir === 'left' || dir === 'right'
-      ? '[transform:rotateY(180deg)]'
-      : '[transform:rotateX(180deg)]';
-
-  return (
-    <div className="h-full [perspective:1200px]" onClick={doFlip}>
-      <div
-        className={`relative h-full min-h-[360px] cursor-pointer
-          rounded-2xl bg-white shadow-[0_6px_20px_rgba(0,0,0,0.08)]
-          [transform-style:preserve-3d] transition-transform duration-500 ${containerFlipClass}`}
-      >
-        {/* FRONT */}
-        <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
-          <button
-            onClick={toggleFav}
-            className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow"
+        {filtered.map(d => (
+          <Link
+            key={d.id}
+            href={`/biology/science/${d.slug}`}
+            className="block p-5 rounded-2xl border hover:shadow bg-white"
           >
-            <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
-          </button>
-
-          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">
-            {c.front}
-          </div>
-
-          {c.image_url && (
-            <img src={c.image_url} className="mt-4 rounded-xl w-full max-h-80 object-contain" alt="" />
-          )}
-
-          <div className="mt-4 text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
-        </div>
-
-        {/* BACK */}
-        <div className={`absolute inset-0 p-5 [backface-visibility:hidden] ${backRotationClass}`}>
-          <div className="text-gray-800 text-base leading-relaxed">{c.back}</div>
-        </div>
-      </div>
-    </div>
+            <div className="text-lg font-medium">{labelFromTitle(d.title)}</div>
+            <div className="text-sm text-gray-500 mt-1">{d.description || 'Открыть колоду'}</div>
+          </Link>
+        ))}
+      </section>
+    </main>
   );
 }
