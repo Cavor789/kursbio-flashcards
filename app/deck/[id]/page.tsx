@@ -12,7 +12,7 @@ type Card = {
   image_url: string | null;
   section: string | null;
   topic: string | null;
-  cta_text: string | null;
+  cta_text: string | null; // оставил поля, вдруг пригодятся дальше
   cta_url: string | null;
 };
 
@@ -36,7 +36,7 @@ export default function DeckView() {
     })();
   }, [params.id]);
 
-  // авторизация пользователя
+  // авторизация пользователя (через session)
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -45,28 +45,21 @@ export default function DeckView() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) =>
       setUser(sess?.user || null)
     );
-    return () => {
-      sub.subscription.unsubscribe();
-    };
+    return () => { sub.subscription.unsubscribe(); };
   }, []);
 
-  // избранные карточки
+  // подгрузка избранного
   async function loadFavorites(u: any) {
-    if (!u) {
-      setFavSet(new Set());
-      return;
-    }
+    if (!u) { setFavSet(new Set()); return; }
     const { data } = await supabase
       .from('favorites')
       .select('card_id')
       .eq('user_id', u.id);
     setFavSet(new Set((data || []).map((r: any) => r.card_id)));
   }
+  useEffect(() => { loadFavorites(user); }, [user]);
 
-  useEffect(() => {
-    loadFavorites(user);
-  }, [user]);
-
+  // фильтрация
   const filtered = useMemo(() => {
     return cards.filter(
       (c) =>
@@ -75,6 +68,7 @@ export default function DeckView() {
     );
   }, [cards, filter]);
 
+  // список разделов/тем для фильтров
   const sections = useMemo(() => {
     const s: Record<string, Set<string>> = {};
     for (const c of cards) {
@@ -88,11 +82,6 @@ export default function DeckView() {
 
   return (
     <div className="space-y-6 font-[Inter]">
-      {/* Заголовок */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-800">Kursbio Карточки</h1>
-      </div>
-
       {/* Фильтры */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -106,10 +95,7 @@ export default function DeckView() {
                 : 'Все карточки'}
             </div>
           </div>
-          <button
-            className="btn btn-ghost text-sm"
-            onClick={() => setFilter({})}
-          >
+          <button className="btn btn-ghost text-sm" onClick={() => setFilter({})}>
             Сброс
           </button>
         </div>
@@ -158,24 +144,27 @@ export default function DeckView() {
           ))}
         </div>
         {filtered.length === 0 && (
-          <div className="text-gray-500 mt-2 text-center">
-            Нет карточек по фильтру.
-          </div>
+          <div className="text-gray-500 mt-2 text-center">Нет карточек по фильтру.</div>
         )}
       </section>
+
+      {/* Промо-блок под всеми карточками */}
+      <div className="card text-center">
+        <div className="text-lg font-semibold">Полезные материалы по теме</div>
+        <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
+          <a href="/conspect" className="btn btn-primary">Забрать конспект</a>
+          <a href="/course" className="btn">Записаться на годовой курс</a>
+        </div>
+      </div>
 
       <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
     </div>
   );
 }
 
-// ---------- компонент FlipCard ----------
+/* ---------- одна карточка ---------- */
 function FlipCard({
-  c,
-  user,
-  favSet,
-  setFavSet,
-  setFavOpen,
+  c, user, favSet, setFavSet, setFavOpen,
 }: {
   c: Card;
   user: any;
@@ -184,30 +173,22 @@ function FlipCard({
   setFavOpen: (v: boolean) => void;
 }) {
   const [flip, setFlip] = useState(false);
-  const dirs = ['left', 'right', 'up', 'down'] as const;
+  // оставляем только Y-повороты (исключаем X, чтобы не было «вверх ногами»)
+  const dirs = ['left', 'right'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
   const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
 
-  useEffect(() => {
-    setIsFav(favSet.has(c.id));
-  }, [favSet, c.id]);
+  useEffect(() => { setIsFav(favSet.has(c.id)); }, [favSet, c.id]);
 
   async function toggleFav(e: any) {
     e.stopPropagation();
-    if (!user) {
-      setFavOpen(true);
-      return;
-    }
+    if (!user) { setFavOpen(true); return; }
     if (isFav) {
-      await supabase.from('favorites').delete().eq('card_id', c.id);
-      const ns = new Set(favSet);
-      ns.delete(c.id);
-      setFavSet(ns);
+      await supabase.from('favorites').delete().eq('card_id', c.id).eq('user_id', user.id);
+      const ns = new Set(favSet); ns.delete(c.id); setFavSet(ns);
     } else {
       await supabase.from('favorites').insert({ card_id: c.id, user_id: user.id });
-      const ns = new Set(favSet);
-      ns.add(c.id);
-      setFavSet(ns);
+      const ns = new Set(favSet); ns.add(c.id); setFavSet(ns);
     }
   }
 
@@ -225,55 +206,32 @@ function FlipCard({
           [transform-style:preserve-3d] transition-transform duration-500
           ${
             flip
-              ? dir === 'left'
-                ? '[transform:rotateY(-180deg)]'
-                : dir === 'right'
-                ? '[transform:rotateY(180deg)]'
-                : dir === 'up'
-                ? '[transform:rotateX(180deg)]'
-                : '[transform:rotateX(-180deg)]'
+              ? (dir === 'left' ? '[transform:rotateY(-180deg)]' : '[transform:rotateY(180deg)]')
               : ''
           }`}
       >
-        {/* передняя сторона */}
+        {/* FRONT */}
         <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
           <button
             onClick={toggleFav}
             className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow"
           >
-            <Heart
-              className="w-6 h-6"
-              fill={isFav ? '#736ecc' : 'none'}
-              color={isFav ? '#736ecc' : '#9ca3af'}
-            />
+            <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
-          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">
-            {c.front}
-          </div>
+
+          {/* убрали дублирование раздел/тема, оставляем только сам вопрос/текст */}
+          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">{c.front}</div>
+
           {c.image_url && (
-            <img
-              src={c.image_url}
-              className="mt-4 rounded-xl w-full max-h-80 object-contain"
-              alt=""
-            />
+            <img src={c.image_url} className="mt-4 rounded-xl w-full max-h-80 object-contain" alt="" />
           )}
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Нажмите, чтобы перевернуть
-          </div>
+
+          <div className="mt-4 text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
         </div>
 
-        {/* обратная сторона */}
+        {/* BACK (для Y-флипа — rotateY) */}
         <div className="absolute inset-0 p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <div className="text-gray-800 text-base leading-relaxed">{c.back}</div>
-          {c.cta_text && c.cta_url && (
-            <a
-              target="_blank"
-              href={c.cta_url}
-              className="btn btn-primary mt-4 inline-block"
-            >
-              {c.cta_text}
-            </a>
-          )}
         </div>
       </div>
     </div>
