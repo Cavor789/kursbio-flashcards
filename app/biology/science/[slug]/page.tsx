@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import TopNav from '@/components/TopNav';
 import { Heart } from 'lucide-react';
 import AuthEmailModal from '@/components/AuthEmailModal';
 
@@ -41,17 +40,23 @@ export default function ScienceTopicPage() {
   const topRef = useRef<HTMLDivElement | null>(null);
   const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  // текущая колода
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('decks')
-        .select('id, title, slug, description, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url')
+        .select(`
+          id, title, slug, description,
+          cta_primary_text, cta_primary_url,
+          cta_secondary_text, cta_secondary_url
+        `)
         .eq('slug', slug)
         .single();
       setDeck(data as Deck);
     })();
   }, [slug]);
 
+  // карточки
   useEffect(() => {
     (async () => {
       if (!deck?.id) return;
@@ -64,6 +69,7 @@ export default function ScienceTopicPage() {
     })();
   }, [deck?.id]);
 
+  // четыре темы-соседа
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -79,6 +85,7 @@ export default function ScienceTopicPage() {
     })();
   }, []);
 
+  // сессия
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -90,6 +97,7 @@ export default function ScienceTopicPage() {
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
+  // избранное
   async function loadFavorites(u: any) {
     if (!u) { setFavSet(new Set()); return; }
     const { data } = await supabase.from('favorites').select('card_id').eq('user_id', u.id);
@@ -97,6 +105,7 @@ export default function ScienceTopicPage() {
   }
   useEffect(() => { loadFavorites(user); }, [user]);
 
+  // CTA (оставил как было)
   const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
   const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
   const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
@@ -108,10 +117,19 @@ export default function ScienceTopicPage() {
 
   return (
     <div className="space-y-6 font-[Inter]">
-      <TopNav topic={topicTitle || undefined} />
+      {/* Больше НИКАКИХ фиолетовых баннеров здесь нет */}
       <div ref={topRef} />
 
-      {/* Шапка + CTA */}
+      {/* хлебные крошки */}
+      <div className="text-sm text-gray-600">
+        <Link href="/cards" className="hover:underline">Карточки</Link>
+        <span className="text-gray-400"> / </span>
+        <Link href="/biology" className="hover:underline">Общая биология</Link>
+        <span className="text-gray-400"> / </span>
+        <span className="font-medium">{topicTitle || 'Тема'}</span>
+      </div>
+
+      {/* Шапка страницы + CTA */}
       <div className="card">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
@@ -126,14 +144,14 @@ export default function ScienceTopicPage() {
         </div>
       </div>
 
-      {/* Темы общей биологии */}
+      {/* Единственные фильтры — 4 темы общей биологии */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <div className="text-lg font-semibold">Общая биология / Биология как наука</div>
             <div className="text-sm text-gray-500">Выберите тему</div>
           </div>
-          <button className="btn btn-ghost text-sm" onClick={() => { scrollToTop(); }}>
+          <button className="btn btn-ghost text-sm" onClick={scrollToTop}>
             Сброс
           </button>
         </div>
@@ -161,16 +179,22 @@ export default function ScienceTopicPage() {
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((c) => (
-            <FlipCard
-              key={c.id}
-              c={c}
-              user={user}
-              favSet={favSet}
-              setFavSet={setFavSet}
-              setFavOpen={setFavOpen}
-              openCardId={openCardId}
-              setOpenCardId={setOpenCardId}
-            />
+            <div key={c.id} className="flex flex-col">
+              <FlipCard
+                c={c}
+                user={user}
+                favSet={favSet}
+                setFavSet={setFavSet}
+                setFavOpen={setFavOpen}
+                openCardId={openCardId}
+                setOpenCardId={setOpenCardId}
+              />
+              {deck?.slug && c.seq && (
+                <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
+                  Открыть карточку (SEO) — №{c.seq}
+                </Link>
+              )}
+            </div>
           ))}
         </div>
         {cards.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек.</div>}
@@ -181,6 +205,7 @@ export default function ScienceTopicPage() {
   );
 }
 
+/* --- карточка (без изменений) --- */
 function FlipCard({
   c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
 }: {
