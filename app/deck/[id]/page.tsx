@@ -16,14 +16,43 @@ type Card = {
   cta_url: string | null;
 };
 
+type Deck = {
+  id: string;
+  title: string;
+  description: string | null;
+  is_public: boolean;
+  cta_primary_text: string | null;
+  cta_primary_url: string | null;
+  cta_secondary_text: string | null;
+  cta_secondary_url: string | null;
+};
+
 export default function DeckView() {
   const params = useParams() as { id: string };
+
+  const [deck, setDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [filter, setFilter] = useState<{ section?: string; topic?: string }>({});
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
   const [openCardId, setOpenCardId] = useState<string | null>(null); // только одна открыта
+
+  // загрузка колоды (для CTA)
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('decks')
+        .select(`
+          id, title, description, is_public,
+          cta_primary_text, cta_primary_url,
+          cta_secondary_text, cta_secondary_url
+        `)
+        .eq('id', params.id)
+        .single();
+      setDeck((data as Deck) || null);
+    })();
+  }, [params.id]);
 
   // загрузка карточек
   useEffect(() => {
@@ -33,7 +62,7 @@ export default function DeckView() {
         .select('*')
         .eq('deck_id', params.id)
         .order('created_at', { ascending: false });
-      setCards(data || []);
+      setCards((data as Card[]) || []);
     })();
   }, [params.id]);
 
@@ -81,8 +110,46 @@ export default function DeckView() {
     return s;
   }, [cards]);
 
+  // CTA с фолбэками
+  const primaryText = deck?.cta_primary_text ?? 'Забрать конспект';
+  const primaryUrl  = deck?.cta_primary_url  ?? 'https://t.me/kursbio/11017';
+  const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
+  const secondaryUrl  = deck?.cta_secondary_url  ?? 'https://kursbio.com/godege';
+
   return (
     <div className="space-y-6 font-[Inter]">
+      {/* Заголовок колоды + CTA */}
+      <div className="card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-xl font-semibold">
+              {deck?.title ?? 'Колода'}
+            </div>
+            {deck?.description && (
+              <div className="text-sm text-gray-500">{deck.description}</div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <a
+              href={primaryUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+            >
+              {primaryText}
+            </a>
+            <a
+              href={secondaryUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn"
+            >
+              {secondaryText}
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Фильтры */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -130,7 +197,7 @@ export default function DeckView() {
         </div>
       </div>
 
-      {/* Сетка */}
+      {/* Сетка карточек */}
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
@@ -151,15 +218,6 @@ export default function DeckView() {
         )}
       </section>
 
-      {/* Промо-блок под карточками */}
-      <div className="card text-center">
-        <div className="text-lg font-semibold">Полезные материалы по теме</div>
-        <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
-          <a href="/conspect" className="btn btn-primary">Забрать конспект</a>
-          <a href="/course" className="btn">Записаться на годовой курс</a>
-        </div>
-      </div>
-
       <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
     </div>
   );
@@ -178,16 +236,13 @@ function FlipCard({
   setOpenCardId: (id: string | null) => void;
 }) {
   const [flip, setFlip] = useState(false);
-  // вернули все направления, но держим текст всегда ровно
   const dirs = ['left', 'right', 'up', 'down'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
 
-  // одна открытая карточка
   useEffect(() => {
     if (openCardId !== c.id && flip) setFlip(false);
   }, [openCardId, flip, c.id]);
 
-  // авто-возврат через 15 сек
   useEffect(() => {
     if (!flip) return;
     const t = setTimeout(() => {
@@ -229,7 +284,6 @@ function FlipCard({
           : '[transform:rotateX(-180deg)]'
       : '';
 
-  // чтобы задняя сторона была ровной при X- и Y-флипе
   const backRotationClass =
     dir === 'left' || dir === 'right'
       ? '[transform:rotateY(180deg)]'
@@ -251,7 +305,6 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* только содержание карточки, без раздела/темы, чтобы не перекрывать сердце */}
           <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">{c.front}</div>
 
           {c.image_url && (
