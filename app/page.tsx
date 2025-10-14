@@ -37,9 +37,8 @@ export default function HomePage() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          {/* ВАЖНО: без /cards, basePath добавится автоматически */}
           <Link
-            href="/"
+            href="/cards"
             className="inline-flex items-center gap-2 rounded-xl bg-white text-[#4c3fe5] px-5 py-3 font-medium hover:bg-white/90 transition"
           >
             Перейти к карточкам
@@ -77,42 +76,42 @@ export default function HomePage() {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickLink
             title="Биология как наука — темы"
-            href="/biology/science"
+            href="/cards/biology/science"
             desc="Науки, методы, уровни организации и признаки живого."
           />
           <QuickLink
             title="Науки"
-            href="/biology/science/bio-science-nauki"
+            href="/cards/biology/science/bio-science-nauki"
             desc="Вопрос — на обороте название науки."
           />
           <QuickLink
             title="Методы"
-            href="/biology/science/bio-science-metody"
+            href="/cards/biology/science/bio-science-metody"
             desc="Вопрос — на обороте название метода."
           />
           <QuickLink
             title="Уровни организации"
-            href="/biology/science/bio-science-urovni"
+            href="/cards/biology/science/bio-science-urovni"
             desc="Вопрос — на обороте название уровня."
           />
         </div>
       </section>
 
-      {/* ПРЕИМУЩЕСТВА */}
+      {/* ПРЕИМУЩЕСТВА — обновлённые тексты */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Почему это удобно</h2>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Feature
-            title="Карточки с нумерацией и SEO"
-            text="Каждая карточка имеет стабильный короткий URL и индексируется."
+            title="Быстро запоминаешь"
+            text="Активируется зрительная память, а пока вспоминаешь — подключаются образная и словесно-логическая."
           />
           <Feature
-            title="Фильтры и избранное"
-            text="Быстро находи нужное и сохраняй сложные вопросы."
+            title="Удобная классификация по темам"
+            text="С помощью карточек можно быстро повторить любую тему — всё разложено по разделам."
           />
           <Feature
-            title="Конспекты и курс"
-            text="Глубина в конспектах и системность на годовом курсе."
+            title="Избранные карточки"
+            text="Сохраняй важные карточки и возвращайся к ним в любое время."
           />
         </div>
       </section>
@@ -127,7 +126,7 @@ export default function HomePage() {
             </div>
           </div>
           <Link
-            href="/"
+            href="/cards"
             className="inline-flex items-center rounded-xl bg-[#736ecc] text-white px-5 py-3 font-medium hover:opacity-90 transition"
           >
             Перейти к карточкам
