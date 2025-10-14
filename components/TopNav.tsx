@@ -15,12 +15,10 @@ export default function TopNav({ section, topic }:{
         <Link href="/biology/science" className="text-sm text-gray-600 hover:underline">
           Общая биология / Биология как наука
         </Link>
-        {topic && (
-          <>
-            <span className="text-gray-400">/</span>
-            <span className="text-sm font-medium">{topic}</span>
-          </>
-        )}
+        {topic && <>
+          <span className="text-gray-400">/</span>
+          <span className="text-sm font-medium">{topic}</span>
+        </>}
       </div>
     </div>
   );
