@@ -5,18 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { Heart } from 'lucide-react';
 import AuthEmailModal from '@/components/AuthEmailModal';
 
-/* ---------- SEO / индексация ---------- */
-export const metadata = {
-  title: 'Карточки по биологии — Kursbio',
-  description: 'Интерактивные флеш-карточки: определения, термины и понятия по общей биологии.',
-  alternates: { canonical: 'https://kursbio.ru/cards/bio' },
-  openGraph: {
-    title: 'Карточки по биологии — Kursbio',
-    description: 'Учите биологию по интерактивным карточкам: переворот, избранное, фильтры.',
-    url: 'https://kursbio.ru/cards/bio',
-  },
-};
-
 type Card = {
   id: string;
   front: string;
@@ -34,22 +22,20 @@ export default function BioCardsPage() {
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
-  const [openCardId, setOpenCardId] = useState<string | null>(null); // только одна открыта
 
-  /* ---------- загрузка карточек ---------- */
+  // загрузка карточек (только "Общая биология")
   useEffect(() => {
     (async () => {
-      // Вариант А: показать все карточки по биологии — раскомментируй строку с eq('section', 'Общая биология')
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cards')
         .select('*')
-        // .eq('section', 'Общая биология')
+        .eq('section', 'Общая биология')   // <- фиксируем набор для /cards/bio
         .order('created_at', { ascending: false });
-      setCards(data || []);
+      if (!error) setCards(data || []);
     })();
   }, []);
 
-  /* ---------- сессия пользователя ---------- */
+  // сессия пользователя (будет запоминаться благодаря persistSession)
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -58,28 +44,21 @@ export default function BioCardsPage() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) =>
       setUser(sess?.user || null)
     );
-    return () => {
-      sub.subscription.unsubscribe();
-    };
+    return () => { sub.subscription.unsubscribe(); };
   }, []);
 
-  /* ---------- избранное ---------- */
+  // избранное
   async function loadFavorites(u: any) {
-    if (!u) {
-      setFavSet(new Set());
-      return;
-    }
+    if (!u) { setFavSet(new Set()); return; }
     const { data } = await supabase
       .from('favorites')
       .select('card_id')
       .eq('user_id', u.id);
     setFavSet(new Set((data || []).map((r: any) => r.card_id)));
   }
-  useEffect(() => {
-    loadFavorites(user);
-  }, [user]);
+  useEffect(() => { loadFavorites(user); }, [user]);
 
-  /* ---------- фильтрация ---------- */
+  // фильтрация
   const filtered = useMemo(() => {
     return cards.filter(
       (c) =>
@@ -88,7 +67,7 @@ export default function BioCardsPage() {
     );
   }, [cards, filter]);
 
-  /* ---------- сбор разделов/тем ---------- */
+  // сбор разделов/тем для фильтров
   const sections = useMemo(() => {
     const s: Record<string, Set<string>> = {};
     for (const c of cards) {
@@ -101,7 +80,24 @@ export default function BioCardsPage() {
   }, [cards]);
 
   return (
-    <div className="space-y-6 font-[Inter]">
+    <div className="space-y-6">
+      {/* Баннер «Войдите в аккаунт» */}
+      {!user && (
+        <div className="card">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="font-semibold">Войдите в аккаунт</div>
+              <div className="text-sm text-gray-500">
+                Чтобы сохранять избранные карточки — войдите или зарегистрируйтесь.
+              </div>
+            </div>
+            <button className="btn btn-primary" onClick={() => setFavOpen(true)}>
+              Войти / Регистрация
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Фильтры */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -160,8 +156,6 @@ export default function BioCardsPage() {
               favSet={favSet}
               setFavSet={setFavSet}
               setFavOpen={setFavOpen}
-              openCardId={openCardId}
-              setOpenCardId={setOpenCardId}
             />
           ))}
         </div>
@@ -184,67 +178,48 @@ export default function BioCardsPage() {
   );
 }
 
-/* ---------- одна карточка ---------- */
+/* ---------- карточка ---------- */
 function FlipCard({
-  c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
+  c, user, favSet, setFavSet, setFavOpen
 }: {
   c: Card;
   user: any;
   favSet: Set<string>;
   setFavSet: (s: Set<string>) => void;
   setFavOpen: (v: boolean) => void;
-  openCardId: string | null;
-  setOpenCardId: (id: string | null) => void;
 }) {
   const [flip, setFlip] = useState(false);
+
+  // 4 направления, но текст всегда ровный
   const dirs = ['left', 'right', 'up', 'down'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
 
-  // одна открытая карточка
-  useEffect(() => {
-    if (openCardId !== c.id && flip) setFlip(false);
-  }, [openCardId, flip, c.id]);
-
-  // авто-возврат через 15 сек
+  // авто-закрытие только автоматическое — 10 секунд
   useEffect(() => {
     if (!flip) return;
-    const t = setTimeout(() => {
-      setFlip(false);
-      if (openCardId === c.id) setOpenCardId(null);
-    }, 15000);
+    const t = setTimeout(() => setFlip(false), 10000);
     return () => clearTimeout(t);
-  }, [flip, openCardId, c.id, setOpenCardId]);
+  }, [flip]);
 
   const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
-  useEffect(() => {
-    setIsFav(favSet.has(c.id));
-  }, [favSet, c.id]);
+  useEffect(() => { setIsFav(favSet.has(c.id)); }, [favSet, c.id]);
 
   async function toggleFav(e: any) {
     e.stopPropagation();
-    if (!user) {
-      setFavOpen(true);
-      return;
-    }
+    if (!user) { setFavOpen(true); return; }
     if (isFav) {
       await supabase.from('favorites').delete().eq('card_id', c.id).eq('user_id', user.id);
-      const ns = new Set(favSet);
-      ns.delete(c.id);
-      setFavSet(ns);
+      const ns = new Set(favSet); ns.delete(c.id); setFavSet(ns);
     } else {
       await supabase.from('favorites').insert({ card_id: c.id, user_id: user.id });
-      const ns = new Set(favSet);
-      ns.add(c.id);
-      setFavSet(ns);
+      const ns = new Set(favSet); ns.add(c.id); setFavSet(ns);
     }
   }
 
   function doFlip() {
     const d = dirs[Math.floor(Math.random() * dirs.length)];
     setDir(d);
-    const willOpen = !flip;
-    setFlip(willOpen);
-    setOpenCardId(willOpen ? c.id : null);
+    setFlip((f) => !f);
   }
 
   const containerFlipClass =
@@ -256,7 +231,6 @@ function FlipCard({
           : '[transform:rotateX(-180deg)]'
       : '';
 
-  // чтобы задняя сторона была ровной при X- и Y-флипе
   const backRotationClass =
     dir === 'left' || dir === 'right'
       ? '[transform:rotateY(180deg)]'
@@ -278,8 +252,9 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* только содержание карточки, без раздела/темы, чтобы не перекрывать сердце */}
-          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">{c.front}</div>
+          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">
+            {c.front}
+          </div>
 
           {c.image_url && (
             <img src={c.image_url} className="mt-4 rounded-xl w-full max-h-80 object-contain" alt="" />
