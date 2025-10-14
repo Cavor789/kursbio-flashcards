@@ -2,45 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== CSS-переменные бренда ===== */
+/* ---- CSS-переменные проекта ---- */
 :root {
   --brand: #736ecc;
   --brand-dark: #5f59c0;
   --bg: #f5f7fb;
 }
 
-/* ===== Базовые штуки ===== */
+/* ---- Базовые стили ---- */
 html, body { height: 100%; }
 body { background: var(--bg); }
 
-/* Карточки/контейнеры */
+/* ---- Карточки / контейнеры ---- */
 .card { @apply bg-white rounded-2xl p-4 shadow-lg; }
 
-/* ===== Кнопки: ОДИН набор правил, без дублей ===== */
-.btn {
-  @apply inline-flex items-center justify-center
-         rounded-xl px-4 py-2 text-sm font-medium
-         transition;
+/* ---- Кнопки (один набор, без дублей!) ---- */
+.btn { 
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition;
 }
-
-/* Основная (фиолетовая) */
-.btn-primary {
-  @apply text-white;
+.btn-primary { 
+  @apply text-white; 
   background: var(--brand);
 }
-.btn-primary:hover {
+.btn-primary:hover { 
   background: var(--brand-dark);
 }
-
-/* Прозрачная на светлом фоне с рамкой */
-.btn-ghost {
-  @apply bg-white border border-gray-200 text-gray-700;
-}
-
-/* Белая кнопка (для цветных фонов/хедера) */
-.btn-white {
+.btn-white { 
   @apply bg-white text-[#373737] hover:bg-gray-100;
 }
+.btn-ghost { 
+  @apply bg-white border border-gray-200;
+}
 
-/* Доп: ссылки в тексте */
-a.link { @apply text-[var(--brand)] hover:underline; }
+/* ---- Ссылки по умолчанию (чуть заметнее) ---- */
+a.link { @apply text-[#736ecc] hover:underline; }
+
+/* ---- Мелкие утилиты ---- */
+.badge { @apply inline-flex items-center px-2 py-0.5 text-xs rounded-md bg-gray-100 text-gray-700; }
