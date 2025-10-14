@@ -181,10 +181,9 @@ export default function ScienceTopicPage() {
                 openCardId={openCardId}
                 setOpenCardId={setOpenCardId}
               />
-              {deck?.slug && c.seq && (
-                <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
-                  Открыть карточку (SEO) — №{c.seq}
-                </Link>
+              {/* Нумерация без кликабельной SEO-ссылки */}
+              {typeof c.seq === 'number' && (
+                <div className="mt-2 text-sm text-gray-400 text-center">№{c.seq}</div>
               )}
             </div>
           ))}
