@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 export default async function ScienceIndex() {
-  // Берём наши 4 колоды по проставленным slug
   const { data: decks } = await supabase
     .from('decks')
     .select('id, title, slug, description')
@@ -12,7 +11,7 @@ export default async function ScienceIndex() {
       'bio-science-nauki',
       'bio-science-metody',
       'bio-science-urovni',
-      'bio-science-priznaki'
+      'bio-science-priznaki',
     ])
     .order('title', { ascending: true });
 
@@ -30,9 +29,17 @@ export default async function ScienceIndex() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         {(decks || []).map((d:any) => (
-          <Link key={d.id} href={`/deck/${d.id}`} className="p-5 rounded-2xl border hover:shadow block">
-            <div className="text-lg font-medium">{d.title.split('→').pop()?.trim() || d.title}</div>
-            <div className="text-sm text-gray-500 mt-1">{d.description || 'Открыть колоду'}</div>
+          <Link
+            key={d.id}
+            href={`/biology/science/${d.slug}`}
+            className="p-5 rounded-2xl border hover:shadow block"
+          >
+            <div className="text-lg font-medium">
+              {d.title.split('→').pop()?.trim() || d.title}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              {d.description || 'Открыть колоду'}
+            </div>
           </Link>
         ))}
       </div>
