@@ -12,7 +12,7 @@ type Card = {
   image_url: string | null;
   section: string | null;
   topic: string | null;
-  cta_text: string | null; // оставил поля, вдруг пригодятся дальше
+  cta_text: string | null;
   cta_url: string | null;
 };
 
@@ -23,6 +23,7 @@ export default function DeckView() {
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
+  const [openCardId, setOpenCardId] = useState<string | null>(null); // только одна открыта
 
   // загрузка карточек
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function DeckView() {
     })();
   }, [params.id]);
 
-  // авторизация пользователя (через session)
+  // сессия пользователя
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -48,7 +49,7 @@ export default function DeckView() {
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
-  // подгрузка избранного
+  // избранное
   async function loadFavorites(u: any) {
     if (!u) { setFavSet(new Set()); return; }
     const { data } = await supabase
@@ -68,7 +69,7 @@ export default function DeckView() {
     );
   }, [cards, filter]);
 
-  // список разделов/тем для фильтров
+  // разделы/темы
   const sections = useMemo(() => {
     const s: Record<string, Set<string>> = {};
     for (const c of cards) {
@@ -129,7 +130,7 @@ export default function DeckView() {
         </div>
       </div>
 
-      {/* Сетка карточек */}
+      {/* Сетка */}
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
@@ -140,6 +141,8 @@ export default function DeckView() {
               favSet={favSet}
               setFavSet={setFavSet}
               setFavOpen={setFavOpen}
+              openCardId={openCardId}
+              setOpenCardId={setOpenCardId}
             />
           ))}
         </div>
@@ -148,7 +151,7 @@ export default function DeckView() {
         )}
       </section>
 
-      {/* Промо-блок под всеми карточками */}
+      {/* Промо-блок под карточками */}
       <div className="card text-center">
         <div className="text-lg font-semibold">Полезные материалы по теме</div>
         <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
@@ -164,20 +167,37 @@ export default function DeckView() {
 
 /* ---------- одна карточка ---------- */
 function FlipCard({
-  c, user, favSet, setFavSet, setFavOpen,
+  c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
 }: {
   c: Card;
   user: any;
   favSet: Set<string>;
   setFavSet: (s: Set<string>) => void;
   setFavOpen: (v: boolean) => void;
+  openCardId: string | null;
+  setOpenCardId: (id: string | null) => void;
 }) {
   const [flip, setFlip] = useState(false);
-  // оставляем только Y-повороты (исключаем X, чтобы не было «вверх ногами»)
-  const dirs = ['left', 'right'] as const;
+  // вернули все направления, но держим текст всегда ровно
+  const dirs = ['left', 'right', 'up', 'down'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
-  const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
 
+  // одна открытая карточка
+  useEffect(() => {
+    if (openCardId !== c.id && flip) setFlip(false);
+  }, [openCardId, flip, c.id]);
+
+  // авто-возврат через 15 сек
+  useEffect(() => {
+    if (!flip) return;
+    const t = setTimeout(() => {
+      setFlip(false);
+      if (openCardId === c.id) setOpenCardId(null);
+    }, 15000);
+    return () => clearTimeout(t);
+  }, [flip, openCardId, c.id, setOpenCardId]);
+
+  const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
   useEffect(() => { setIsFav(favSet.has(c.id)); }, [favSet, c.id]);
 
   async function toggleFav(e: any) {
@@ -195,20 +215,32 @@ function FlipCard({
   function doFlip() {
     const d = dirs[Math.floor(Math.random() * dirs.length)];
     setDir(d);
-    setFlip((f) => !f);
+    const willOpen = !flip;
+    setFlip(willOpen);
+    setOpenCardId(willOpen ? c.id : null);
   }
+
+  const containerFlipClass =
+    flip
+      ? dir === 'left' || dir === 'right'
+        ? '[transform:rotateY(180deg)]'
+        : dir === 'up'
+          ? '[transform:rotateX(180deg)]'
+          : '[transform:rotateX(-180deg)]'
+      : '';
+
+  // чтобы задняя сторона была ровной при X- и Y-флипе
+  const backRotationClass =
+    dir === 'left' || dir === 'right'
+      ? '[transform:rotateY(180deg)]'
+      : '[transform:rotateX(180deg)]';
 
   return (
     <div className="h-full [perspective:1200px]" onClick={doFlip}>
       <div
         className={`relative h-full min-h-[360px] cursor-pointer
           rounded-2xl bg-white shadow-[0_6px_20px_rgba(0,0,0,0.08)]
-          [transform-style:preserve-3d] transition-transform duration-500
-          ${
-            flip
-              ? (dir === 'left' ? '[transform:rotateY(-180deg)]' : '[transform:rotateY(180deg)]')
-              : ''
-          }`}
+          [transform-style:preserve-3d] transition-transform duration-500 ${containerFlipClass}`}
       >
         {/* FRONT */}
         <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
@@ -219,7 +251,7 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* убрали дублирование раздел/тема, оставляем только сам вопрос/текст */}
+          {/* только содержание карточки, без раздела/темы, чтобы не перекрывать сердце */}
           <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">{c.front}</div>
 
           {c.image_url && (
@@ -229,8 +261,8 @@ function FlipCard({
           <div className="mt-4 text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
         </div>
 
-        {/* BACK (для Y-флипа — rotateY) */}
-        <div className="absolute inset-0 p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+        {/* BACK */}
+        <div className={`absolute inset-0 p-5 [backface-visibility:hidden] ${backRotationClass}`}>
           <div className="text-gray-800 text-base leading-relaxed">{c.back}</div>
         </div>
       </div>
