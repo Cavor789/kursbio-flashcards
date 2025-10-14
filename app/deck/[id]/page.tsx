@@ -20,7 +20,11 @@ export default function DeckView() {
   const params = useParams() as { id: string };
   const [cards, setCards] = useState<Card[]>([]);
   const [filter, setFilter] = useState<{ section?: string; topic?: string }>({});
+  const [user, setUser] = useState<any>(null);
+  const [favOpen, setFavOpen] = useState(false);
+  const [favSet, setFavSet] = useState<Set<string>>(new Set());
 
+  // загрузка карточек
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -32,12 +36,12 @@ export default function DeckView() {
     })();
   }, [params.id]);
 
-  const [user, setUser] = useState<any>(null);
-  const [favOpen, setFavOpen] = useState(false);
-  const [favSet, setFavSet] = useState<Set<string>>(new Set());
-
+  // авторизация пользователя
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user || null));
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+    })();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) =>
       setUser(sess?.user || null)
     );
@@ -46,12 +50,16 @@ export default function DeckView() {
     };
   }, []);
 
+  // избранные карточки
   async function loadFavorites(u: any) {
     if (!u) {
       setFavSet(new Set());
       return;
     }
-    const { data } = await supabase.from('favorites').select('card_id');
+    const { data } = await supabase
+      .from('favorites')
+      .select('card_id')
+      .eq('user_id', u.id);
     setFavSet(new Set((data || []).map((r: any) => r.card_id)));
   }
 
@@ -79,83 +87,89 @@ export default function DeckView() {
   }, [cards]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 font-[Inter]">
+      {/* Заголовок */}
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-800">Kursbio Карточки</h1>
+      </div>
+
+      {/* Фильтры */}
       <div className="card">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <div className="text-lg font-semibold">Карточки</div>
+            <div className="text-lg font-semibold">Фильтры</div>
             <div className="text-sm text-gray-500">
-              Фильтр:{' '}
               {filter.section
                 ? filter.topic
                   ? `${filter.section} / ${filter.topic}`
                   : filter.section
-                : 'нет'}
+                : 'Все карточки'}
             </div>
           </div>
-          <div className="flex gap-2">
-            <button className="btn btn-ghost" onClick={() => setFilter({})}>
-              Сброс
-            </button>
-          </div>
+          <button
+            className="btn btn-ghost text-sm"
+            onClick={() => setFilter({})}
+          >
+            Сброс
+          </button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* Левая панель с разделами */}
-        <div className="card">
-          <div className="font-semibold">Разделы/Темы</div>
-          <div className="mt-2 space-y-2">
-            {Object.entries(sections).map(([sec, topics]) => (
-              <div key={sec} className="border rounded-xl p-2">
-                <button
-                  className="w-full text-left font-medium"
-                  onClick={() => setFilter({ section: sec })}
-                >
-                  {sec}
-                </button>
-                <div className="mt-2 space-y-1 pl-2">
-                  {[...topics].map((t) => (
-                    <button
-                      key={sec + t}
-                      onClick={() => setFilter({ section: sec, topic: t })}
-                      className="w-full text-left text-sm hover:underline"
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+        <div className="mt-4 flex flex-col gap-3">
+          {Object.entries(sections).map(([sec, topics]) => (
+            <div key={sec} className="border rounded-xl p-2">
+              <button
+                className="w-full text-left font-medium"
+                onClick={() => setFilter({ section: sec })}
+              >
+                {sec}
+              </button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[...topics].map((t) => (
+                  <button
+                    key={sec + t}
+                    onClick={() => setFilter({ section: sec, topic: t })}
+                    className={`px-2 py-1 text-sm rounded-lg ${
+                      filter.topic === t
+                        ? 'bg-[#736ecc] text-white'
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-
-        {/* Правая часть с карточками */}
-        <section className="md:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((c) => (
-              <FlipCard
-                key={c.id}
-                c={c}
-                user={user}
-                favSet={favSet}
-                setFavSet={setFavSet}
-                setFavOpen={setFavOpen}
-              />
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="text-gray-500 mt-2">Нет карточек по фильтру.</div>
-          )}
-        </section>
       </div>
+
+      {/* Сетка карточек */}
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((c) => (
+            <FlipCard
+              key={c.id}
+              c={c}
+              user={user}
+              favSet={favSet}
+              setFavSet={setFavSet}
+              setFavOpen={setFavOpen}
+            />
+          ))}
+        </div>
+        {filtered.length === 0 && (
+          <div className="text-gray-500 mt-2 text-center">
+            Нет карточек по фильтру.
+          </div>
+        )}
+      </section>
 
       <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
     </div>
   );
 }
 
+// ---------- компонент FlipCard ----------
 function FlipCard({
   c,
   user,
@@ -173,6 +187,7 @@ function FlipCard({
   const dirs = ['left', 'right', 'up', 'down'] as const;
   const [dir, setDir] = useState<typeof dirs[number]>('left');
   const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
+
   useEffect(() => {
     setIsFav(favSet.has(c.id));
   }, [favSet, c.id]);
@@ -185,12 +200,12 @@ function FlipCard({
     }
     if (isFav) {
       await supabase.from('favorites').delete().eq('card_id', c.id);
-      const ns = new Set(Array.from(favSet));
+      const ns = new Set(favSet);
       ns.delete(c.id);
       setFavSet(ns);
     } else {
-      await supabase.from('favorites').insert({ card_id: c.id });
-      const ns = new Set(Array.from(favSet));
+      await supabase.from('favorites').insert({ card_id: c.id, user_id: user.id });
+      const ns = new Set(favSet);
       ns.add(c.id);
       setFavSet(ns);
     }
@@ -205,57 +220,56 @@ function FlipCard({
   return (
     <div className="h-full [perspective:1200px]" onClick={doFlip}>
       <div
-        className={`relative h-full min-h-[220px] cursor-pointer
+        className={`relative h-full min-h-[360px] cursor-pointer
           rounded-2xl bg-white shadow-[0_6px_20px_rgba(0,0,0,0.08)]
           [transform-style:preserve-3d] transition-transform duration-500
           ${
             flip
               ? dir === 'left'
-                ? '[-rotate-y-180]'
+                ? '[transform:rotateY(-180deg)]'
                 : dir === 'right'
-                ? '[rotateY(180deg)]'
+                ? '[transform:rotateY(180deg)]'
                 : dir === 'up'
-                ? '[rotateX(180deg)]'
-                : '[-rotate-x-180]'
+                ? '[transform:rotateX(180deg)]'
+                : '[transform:rotateX(-180deg)]'
               : ''
           }`}
       >
-        {/* FRONT */}
-        <div className="absolute inset-0 p-4 sm:p-5 [backface-visibility:hidden]">
+        {/* передняя сторона */}
+        <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
           <button
             onClick={toggleFav}
-            className="absolute top-2 right-2 rounded-full p-1 bg-white/90 hover:bg-white shadow"
+            className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow"
           >
             <Heart
-              className="w-5 h-5"
+              className="w-6 h-6"
               fill={isFav ? '#736ecc' : 'none'}
               color={isFav ? '#736ecc' : '#9ca3af'}
             />
           </button>
-          <div className="text-xs text-gray-500">
-            {(c.section || 'Без раздела') + ' / ' + (c.topic || 'Без темы')}
+          <div className="mt-1 font-semibold text-base sm:text-lg text-gray-800">
+            {c.front}
           </div>
-          <div className="mt-1 font-medium">{c.front}</div>
           {c.image_url && (
             <img
               src={c.image_url}
-              className="mt-3 rounded-xl w-full max-h-60 object-contain"
+              className="mt-4 rounded-xl w-full max-h-80 object-contain"
               alt=""
             />
           )}
-          <div className="mt-2 text-[11px] text-gray-500">
-            Нажмите чтобы перевернуть
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            Нажмите, чтобы перевернуть
           </div>
         </div>
 
-        {/* BACK */}
-        <div className="absolute inset-0 p-4 sm:p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <div className="text-gray-800">{c.back}</div>
+        {/* обратная сторона */}
+        <div className="absolute inset-0 p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="text-gray-800 text-base leading-relaxed">{c.back}</div>
           {c.cta_text && c.cta_url && (
             <a
               target="_blank"
               href={c.cta_url}
-              className="btn btn-primary mt-3 inline-block"
+              className="btn btn-primary mt-4 inline-block"
             >
               {c.cta_text}
             </a>
