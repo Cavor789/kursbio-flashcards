@@ -1,9 +1,12 @@
 'use client';
+
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Heart } from 'lucide-react';
 import AuthEmailModal from '@/components/AuthEmailModal';
+import TopNav from '@/components/TopNav';
 
 type Card = {
   id: string;
@@ -118,6 +121,9 @@ export default function DeckView() {
 
   return (
     <div className="space-y-6 font-[Inter]">
+      {/* Верхняя навигация */}
+      <TopNav section="Общая биология / Биология как наука" topic={filter.topic ?? null} />
+
       {/* Заголовок колоды + CTA */}
       <div className="card">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -201,16 +207,24 @@ export default function DeckView() {
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
-            <FlipCard
-              key={c.id}
-              c={c}
-              user={user}
-              favSet={favSet}
-              setFavSet={setFavSet}
-              setFavOpen={setFavOpen}
-              openCardId={openCardId}
-              setOpenCardId={setOpenCardId}
-            />
+            <div key={c.id} className="flex flex-col">
+              <FlipCard
+                c={c}
+                user={user}
+                favSet={favSet}
+                setFavSet={setFavSet}
+                setFavOpen={setFavOpen}
+                openCardId={openCardId}
+                setOpenCardId={setOpenCardId}
+              />
+              {/* SEO-ссылка на отдельную страницу карточки */}
+              <Link
+                href={`/card/${c.id}`}
+                className="mt-2 inline-block text-sm text-[#736ecc] hover:underline"
+              >
+                Открыть карточку (SEO)
+              </Link>
+            </div>
           ))}
         </div>
         {filtered.length === 0 && (
