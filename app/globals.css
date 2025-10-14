@@ -14,3 +14,7 @@ body { background: var(--bg); }
 .btn-primary { @apply text-white; background: var(--brand); }
 .btn-primary:hover { background: var(--brand-dark); }
 .btn-ghost { @apply bg-white border border-gray-200; }
+.btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 bg-white/10 text-white hover:bg-white/20 transition; }
+.btn-primary { @apply bg-[#736ecc] text-white hover:opacity-90; }
+.btn-white { @apply bg-white text-[#373737] hover:bg-gray-100; }
+
