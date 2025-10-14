@@ -1,33 +1,43 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
-export default function TopNav({ topic }:{ topic?: string|null }) {
-  const r = useRouter();
+export default function TopNav({ topic }: { topic?: string }) {
   return (
-    <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-        <button onClick={() => r.back()} className="btn btn-ghost">← Назад</button>
+    <header className="bg-[#736ecc] text-white">
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="flex items-center gap-3">
+          <Link href="/cards" className="flex items-center gap-3">
+            <Image
+              src="/logo-kursbio-white.png"   // файл в /public
+              alt="Kursbio"
+              width={120}
+              height={32}
+              priority
+            />
+            <span className="sr-only">Kursbio Карточки</span>
+          </Link>
 
-        <Link href="/" className="text-sm text-gray-600 hover:underline">Колоды</Link>
-        <span className="text-gray-400">/</span>
-
-        <Link href="/biology" className="text-sm text-gray-600 hover:underline">
-          Общая биология
-        </Link>
-        <span className="text-gray-400">/</span>
-
-        <Link href="/biology/science" className="text-sm text-gray-600 hover:underline">
-          Биология как наука
-        </Link>
+          <div className="ml-auto flex gap-2">
+            <Link href="/cards" className="btn btn-white">Перейти к карточкам</Link>
+            <a href="https://t.me/kursbio/11017" target="_blank" rel="noreferrer" className="btn btn-white">
+              Забрать конспект
+            </a>
+            <a href="https://kursbio.com/godege" target="_blank" rel="noreferrer" className="btn btn-white">
+              Записаться на годовой курс
+            </a>
+            <a href="https://kursbio.com/book" target="_blank" rel="noreferrer" className="btn btn-white">
+              Приобрести конспекты
+            </a>
+          </div>
+        </div>
 
         {topic && (
-          <>
-            <span className="text-gray-400">/</span>
-            <span className="text-sm font-medium">{topic}</span>
-          </>
+          <div className="mt-2 text-white/80 text-sm">
+            {topic}
+          </div>
         )}
       </div>
-    </div>
+    </header>
   );
 }
