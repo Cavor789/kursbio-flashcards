@@ -48,38 +48,30 @@ export default function AuthEmailModal({ open, onClose }: Props) {
     try {
       const cleanPhone = normalizePhone(phone);
 
-      // регистрируем пользователя + кладем ФИО/телефон в user_metadata
+      // регистрация + кладём ФИО/телефон в user_metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password: pass,
         options: {
-          data: {
-            full_name: fullName,
-            phone: cleanPhone,
-          },
-          // при включенном подтверждении почты Supabase отправит письмо
-          // emailRedirectTo: 'https://kursbio.ru', // можно указать свой URL
+          data: { full_name: fullName, phone: cleanPhone },
+          // emailRedirectTo: 'https://kursbio.com', // если нужен редирект после подтверждения
         },
       });
       if (error) throw error;
 
       const user = data.user;
       if (user) {
-        // создаём/обновляем профиль
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: user.id,
-            full_name: fullName,
-            phone: cleanPhone,
-            email,
-          })
-          .eq('id', user.id);
+        // создаём/обновляем профиль (upsert по id)
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          full_name: fullName,
+          phone: cleanPhone,
+          email, // см. SQL ниже, если этой колонки нет
+        });
       }
 
       setMsg('Успешно! Проверьте почту для подтверждения (если требуется) и войдите.');
-      // при необходимости можно сразу закрывать:
-      // onClose();
+      // onClose(); // можешь сразу закрывать, если нужно
     } catch (e: any) {
       setErr(e.message || 'Ошибка регистрации');
     } finally {
@@ -107,25 +99,42 @@ export default function AuthEmailModal({ open, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-lg font-semibold">
-            {mode === 'signup' ? 'Регистрация' : 'Вход'}
-          </div>
-          <button onClick={onClose} className="btn btn-ghost">✕</button>
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+      onMouseDown={(e) => {
+        // закрываем ТОЛЬКО если кликнули по фону, а не по самому окну
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
+        // Гасим всплытие кликов/тачей изнутри модалки
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-lg font-semibold">Регистрация</div>
+          <button className="btn btn-ghost" onClick={onClose}>✕</button>
         </div>
 
         <div className="mb-3 flex gap-2">
           <button
             className={`btn ${mode === 'signup' ? 'btn-primary' : ''}`}
             onClick={() => setMode('signup')}
+            type="button"
           >
             Регистрация
           </button>
           <button
             className={`btn ${mode === 'signin' ? 'btn-primary' : ''}`}
             onClick={() => setMode('signin')}
+            type="button"
           >
             Вход
           </button>
@@ -141,6 +150,7 @@ export default function AuthEmailModal({ open, onClose }: Props) {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Иванов Иван Иванович"
                 required
+                autoFocus
               />
             </div>
             <div>
@@ -214,6 +224,7 @@ export default function AuthEmailModal({ open, onClose }: Props) {
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                autoFocus
               />
             </div>
             <div>
