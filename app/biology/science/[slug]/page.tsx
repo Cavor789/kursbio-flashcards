@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -24,8 +24,6 @@ type Card = {
   front: string;
   back: string;
   image_url: string | null;
-  section: string | null;
-  topic: string | null;
   seq: number;
 };
 
@@ -35,7 +33,6 @@ export default function ScienceTopicPage() {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [siblings, setSiblings] = useState<Deck[]>([]);
-  const [filter, setFilter] = useState<{ section?: string; topic?: string }>({});
   const [user, setUser] = useState<any>(null);
   const [favOpen, setFavOpen] = useState(false);
   const [favSet, setFavSet] = useState<Set<string>>(new Set());
@@ -44,7 +41,7 @@ export default function ScienceTopicPage() {
   const topRef = useRef<HTMLDivElement | null>(null);
   const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // текущая колода по slug
+  // текущая колода
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -60,13 +57,13 @@ export default function ScienceTopicPage() {
     })();
   }, [slug]);
 
-  // карточки текущей колоды
+  // карточки (весь набор, без вложенных фильтров)
   useEffect(() => {
     (async () => {
       if (!deck?.id) return;
       const { data } = await supabase
         .from('cards')
-        .select('id, front, back, image_url, section, topic, seq')
+        .select('id, front, back, image_url, seq')
         .eq('deck_id', deck.id)
         .order('seq', { ascending: true });
       setCards((data as Card[]) || []);
@@ -109,27 +106,6 @@ export default function ScienceTopicPage() {
   }
   useEffect(() => { loadFavorites(user); }, [user]);
 
-  // фильтры
-  const filtered = useMemo(() => {
-    return cards.filter(
-      (c) =>
-        (!filter.section || (c.section || '') === filter.section) &&
-        (!filter.topic || (c.topic || '') === filter.topic)
-    );
-  }, [cards, filter]);
-
-  // разделы/темы карточек внутри колоды
-  const sections = useMemo(() => {
-    const s: Record<string, Set<string>> = {};
-    for (const c of cards) {
-      const sec = c.section || 'Без раздела';
-      const top = c.topic || 'Без темы';
-      if (!s[sec]) s[sec] = new Set();
-      s[sec].add(top);
-    }
-    return s;
-  }, [cards]);
-
   // CTA
   const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
   const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
@@ -160,19 +136,18 @@ export default function ScienceTopicPage() {
         </div>
       </div>
 
-      {/* Фильтры: сначала чипы всех ТЕМ раздела (фиолетовая — активная) */}
+      {/* ЕДИНСТВЕННЫЕ фильтры: 4 темы общей биологии (активная — фиолетовая) */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <div className="text-lg font-semibold">Фильтры</div>
-            <div className="text-sm text-gray-500">Общая биология / Биология как наука</div>
+            <div className="text-lg font-semibold">Общая биология / Биология как наука</div>
+            <div className="text-sm text-gray-500">Выберите тему</div>
           </div>
-          <button className="btn btn-ghost text-sm" onClick={() => { setFilter({}); scrollToTop(); }}>
+          <button className="btn btn-ghost text-sm" onClick={() => { scrollToTop(); }}>
             Сброс
           </button>
         </div>
 
-        {/* Чипы тем (4 шт.) */}
         <div className="mt-3 flex flex-wrap gap-2">
           {siblings.map((s) => {
             const label = s.title.split('→').pop()?.trim() || s.title;
@@ -190,84 +165,39 @@ export default function ScienceTopicPage() {
             );
           })}
         </div>
-
-        {/* Дальше — фильтры внутри колоды (раздел/темы карточек) */}
-        <div className="mt-4 flex flex-col gap-3">
-          {Object.entries(sections).map(([sec, topics]) => (
-            <div key={sec} className="border rounded-xl p-2">
-              <button
-                className="w-full text-left font-medium"
-                onClick={() => { setFilter({ section: sec }); scrollToTop(); }}
-              >
-                {sec}
-              </button>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {[...topics].map((t) => (
-                  <button
-                    key={sec + t}
-                    onClick={() => { setFilter({ section: sec, topic: t }); scrollToTop(); }}
-                    className={`px-2 py-1 text-sm rounded-lg ${
-                      filter.topic === t ? 'bg-[#736ecc] text-white' : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Сетка карточек */}
-      <CardsGrid
-        deck={deck}
-        cards={filtered}
-        user={user}
-        favOpen={favOpen}
-        setFavOpen={setFavOpen}
-        favSet={favSet}
-        setFavSet={setFavSet}
-        openCardId={openCardId}
-        setOpenCardId={setOpenCardId}
-      />
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cards.map((c) => (
+            <div key={c.id} className="flex flex-col">
+              <FlipCard
+                c={c}
+                user={user}
+                favSet={favSet}
+                setFavSet={setFavSet}
+                setFavOpen={setFavOpen}
+                openCardId={openCardId}
+                setOpenCardId={setOpenCardId}
+              />
+              {deck?.slug && c.seq && (
+                <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
+                  Открыть карточку (SEO) — №{c.seq}
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+        {cards.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек.</div>}
+      </section>
 
       <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
     </div>
   );
 }
 
-/* -------- сетка и карточки -------- */
-function CardsGrid({
-  deck, cards, user, favOpen, setFavOpen, favSet, setFavSet, openCardId, setOpenCardId
-}: any) {
-  return (
-    <section>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map((c: Card) => (
-          <div key={c.id} className="flex flex-col">
-            <FlipCard
-              c={c}
-              user={user}
-              favSet={favSet}
-              setFavSet={setFavSet}
-              setFavOpen={setFavOpen}
-              openCardId={openCardId}
-              setOpenCardId={setOpenCardId}
-            />
-            {deck?.slug && c.seq && (
-              <Link href={`/d/${deck.slug}/${c.seq}`} className="mt-2 inline-block text-sm text-[#736ecc] hover:underline">
-                Открыть карточку (SEO) — №{c.seq}
-              </Link>
-            )}
-          </div>
-        ))}
-      </div>
-      {cards.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек по фильтру.</div>}
-    </section>
-  );
-}
-
+/* -------- карточка -------- */
 function FlipCard({
   c, user, favSet, setFavSet, setFavOpen, openCardId, setOpenCardId,
 }: {
@@ -338,11 +268,7 @@ function FlipCard({
             <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
           </button>
 
-          {/* Контент по центру (вместе с возможной картинкой) */}
           <div className="h-full flex flex-col items-center justify-center gap-4 pt-8 text-center">
-            {c.image_url && (
-              <img src={c.image_url} className="rounded-xl max-h-48 object-contain" alt="" />
-            )}
             <div className="font-semibold text-base sm:text-lg text-gray-800">
               {c.front}
             </div>
@@ -353,9 +279,7 @@ function FlipCard({
         {/* BACK */}
         <div className={`absolute inset-0 p-5 [backface-visibility:hidden] ${backRotationClass}`}>
           <div className="h-full flex items-center justify-center">
-            <div className="text-gray-800 text-base leading-relaxed text-center">
-              {c.back}
-            </div>
+            <div className="text-gray-800 text-base leading-relaxed text-center">{c.back}</div>
           </div>
         </div>
       </div>
