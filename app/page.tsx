@@ -1,31 +1,14 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
-
-type Deck = { id: string; title: string; is_public: boolean; };
 export default function Home() {
-  const [decks, setDecks] = useState<Deck[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('decks').select('id,title,is_public').eq('is_public', true).order('title');
-      setDecks(data || []);
-    })();
-  }, []);
-
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Публичные колоды</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {decks.map(d => (
-          <Link key={d.id} href={`/deck/${d.id}`} className="card hover:shadow-xl transition">
-            <div className="font-semibold">{d.title}</div>
-            <div className="text-sm text-gray-500">Минималистичный просмотр</div>
-          </Link>
-        ))}
-        {decks.length===0 && <div className="text-gray-500">Пока нет опубликованных колод.</div>}
+    <main className="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-semibold">Колоды</h1>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <a href="/biology" className="block p-5 rounded-2xl border hover:shadow">
+          <div className="text-lg font-medium">Общая биология</div>
+          <div className="text-sm text-gray-500 mt-1">Основные разделы, методы, уровни, признаки</div>
+        </a>
       </div>
-    </div>
+    </main>
   );
 }
