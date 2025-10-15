@@ -18,9 +18,7 @@ type Card = {
   image_url?: string | null;
 };
 
-function shortTitle(full: string) {
-  return (full.split('→').pop() || full).trim();
-}
+const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const { data: deck } = await supabase
@@ -30,14 +28,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     .single();
 
   if (!deck) return {};
+  const short = ((deck.title as string).split('→').pop() || deck.title).trim();
   return {
-    title: `${shortTitle(deck.title as string)} — Kursbio`,
+    title: `${short} — Kursbio`,
     description: deck.description || 'Карточки по теме.',
   };
 }
 
 export default async function DeckPage({ params }: { params: { slug: string } }) {
-  // 1) Находим колоду
+  // 1) Колода
   const { data: deck } = await supabase
     .from('decks')
     .select('id, title, description, is_public')
@@ -46,23 +45,20 @@ export default async function DeckPage({ params }: { params: { slug: string } })
 
   if (!deck || !deck.is_public) return notFound();
 
-  // 2) Берём карточки этой колоды
-  const { data: cardsRaw } = await supabase
+  // 2) Карточки
+  const { data: raw } = await supabase
     .from('cards')
     .select('id, front, back, image_url')
     .eq('deck_id', deck.id);
 
-  // 3) Убираем «Таблица 1»
-  const cards: Card[] = (cardsRaw || []).filter(
-    c => (c.front?.trim() ?? '') !== 'Таблица 1'
-  );
+  // 3) Убираем «Таблица 1» (на всякий случай нормализация пробелов/регистра)
+  const cards: Card[] = (raw || []).filter(c => norm(c.front ?? '') !== 'таблица 1');
 
   return (
     <section className="space-y-6">
-      {/* ВАЖНО: не рендерим никакие breadcrumb/второй хедер здесь */}
-      {/* Оставляем только сетку карточек */}
+      {/* НИКАКИХ хлебных крошек/вторых заголовков тут не рендерим */}
 
-      {/* 1 колонка на телефоне, 3 на десктопе */}
+      {/* 1 колонка на мобиле, 3 на десктопе; большие карточки */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
         {cards.map(card => (
           <article
