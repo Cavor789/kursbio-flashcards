@@ -1,31 +1,23 @@
-'use client';
-
-import { useSelectedLayoutSegments } from 'next/navigation';
+// app/layout.tsx — СЕРВЕРНЫЙ root layout
+import './globals.css';
 import React from 'react';
+import HeroGate from '@/components/HeroGate';
 
-// 💡 ВАЖНО: Вставь СВОЙ JSX баннера в место, отмеченное /* HERO */ ниже.
+export const metadata = {
+  title: 'Kursbio Карточки',
+  description: 'Карточки и колоды по биологии.',
+};
 
-export default function BiologyLayout({ children }: { children: React.ReactNode }) {
-  const segments = useSelectedLayoutSegments();
-  // segments:
-  //  []                         -> /biology (если есть index)
-  //  ["chemistry"]              -> /biology/chemistry
-  //  ["chemistry", "<slug>"]    -> /biology/chemistry/[slug]
-
-  const isChemistryRoot = segments.length === 1 && segments[0] === 'chemistry';
-  const showHero = isChemistryRoot; // показываем баннер только на /biology/chemistry
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {showHero ? (
-        /* HERO */ (
-          // 👉 СЮДА ВСТАВЬ твой фиолетовый баннер (ровно тот JSX, что был раньше).
-          // Например: <SubjectHero subject="Химический состав клетки" />
-          <></>
-        )
-      ) : null}
+    <html lang="ru">
+      <body className="bg-gray-50 text-gray-900">
+        {/* Показываем фиолетовый баннер только там, где нужно */}
+        <HeroGate />
 
-      {children}
-    </>
+        {/* Главный контент страниц */}
+        <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
+      </body>
+    </html>
   );
 }
