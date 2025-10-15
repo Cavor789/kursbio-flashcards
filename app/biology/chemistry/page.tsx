@@ -1,6 +1,6 @@
 // app/biology/chemistry/page.tsx
 import { supabase } from '@/lib/supabase';
-import FlipCard from '@/components/FlipCard';
+import Flashcard from '@/components/Flashcard';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +27,13 @@ const isTable1 = (front: string | null) => {
   return n === 'таблица 1' || n.startsWith('таблица 1');
 };
 
+export const metadata = {
+  title: 'Химический состав клетки — Kursbio',
+  description: 'Карточки и колоды по теме «Химический состав клетки».',
+};
+
 export default async function ChemistryRoot() {
-  // берём все публичные колоды по химии
+  // Берём публичные колоды химии
   const { data: decksRaw } = await supabase
     .from('decks')
     .select('id, title, slug, description, is_public')
@@ -36,17 +41,17 @@ export default async function ChemistryRoot() {
 
   const decks: Deck[] = (decksRaw || []).filter(d => d.is_public);
 
-  // если нет колод — пусто
+  // Нет колод
   if (decks.length === 0) {
     return (
       <section className="space-y-6">
         <h1 className="text-2xl font-semibold">Химический состав клетки</h1>
-        <div className="text-gray-500">Пока пусто.</div>
+        <div className="text-gray-500">Пока пусто. Проверь, что колода создана и <i>is_public = true</i>.</div>
       </section>
     );
   }
 
-  // если колода одна — сразу показываем карточки этой колоды (без промежуточного клика)
+  // ОДНА колода — сразу показываем карточки (без лишнего клика)
   if (decks.length === 1) {
     const deck = decks[0];
     const { data: cardsRaw } = await supabase
@@ -56,15 +61,14 @@ export default async function ChemistryRoot() {
       .order('seq', { ascending: true });
 
     const cards: Card[] = (cardsRaw || []).filter(c => !isTable1(c.front));
-
     const titleShort = (deck.title.split('→').pop() || deck.title).trim();
 
     return (
       <section className="space-y-6">
-        {/* Липкий мини-хедер: назад / наверх */}
+        {/* Липкий мини-хедер */}
         <div className="sticky top-0 z-20 -mt-6 pt-6">
           <div className="rounded-xl border bg-white/90 backdrop-blur px-3 py-2 flex items-center justify-between">
-            <a href="/cards" className="text-sm text-[#736ecc] hover:underline">← Назад</a>
+            <a href="/biology" className="text-sm text-[#736ecc] hover:underline">← Назад</a>
             <div className="text-sm font-medium truncate px-2">{titleShort}</div>
             <button
               className="text-sm text-gray-600 hover:underline"
@@ -78,14 +82,14 @@ export default async function ChemistryRoot() {
         {/* Сетка карточек: 1 колонка на мобиле, 3 на десктопе */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
           {cards.map(c => (
-            <FlipCard key={c.id} front={c.front} back={c.back} image_url={c.image_url ?? undefined} />
+            <Flashcard key={c.id} front={c.front} back={c.back} image_url={c.image_url ?? undefined} />
           ))}
         </div>
       </section>
     );
   }
 
-  // иначе показываем список доступных колод
+  // НЕСКОЛЬКО колод — показываем плитки
   return (
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold">Химический состав клетки — колоды</h1>
