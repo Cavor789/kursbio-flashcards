@@ -1,3 +1,4 @@
+// app/biology/chemistry/[slug]/page.tsx
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 
@@ -6,7 +7,6 @@ export const dynamic = 'force-dynamic';
 type Deck = {
   id: string;
   title: string;
-  slug: string;
   description: string | null;
   is_public: boolean;
 };
@@ -18,6 +18,10 @@ type Card = {
   image_url?: string | null;
 };
 
+function shortTitle(full: string) {
+  return (full.split('→').pop() || full).trim();
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const { data: deck } = await supabase
     .from('decks')
@@ -26,15 +30,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     .single();
 
   if (!deck) return {};
-
   return {
-    title: `${(deck.title as string).split('→').pop()?.trim() || deck.title} — Kursbio`,
+    title: `${shortTitle(deck.title as string)} — Kursbio`,
     description: deck.description || 'Карточки по теме.',
   };
 }
 
 export default async function DeckPage({ params }: { params: { slug: string } }) {
-  // Находим колоду по slug
+  // 1) Находим колоду
   const { data: deck } = await supabase
     .from('decks')
     .select('id, title, description, is_public')
@@ -43,23 +46,25 @@ export default async function DeckPage({ params }: { params: { slug: string } })
 
   if (!deck || !deck.is_public) return notFound();
 
-  // Подтягиваем карточки этой колоды
+  // 2) Берём карточки этой колоды
   const { data: cardsRaw } = await supabase
     .from('cards')
     .select('id, front, back, image_url')
     .eq('deck_id', deck.id);
 
-  const cards: Card[] = (cardsRaw || [])
-    // убираем карточку «Таблица 1»
-    .filter((c) => (c.front?.trim() ?? '') !== 'Таблица 1');
+  // 3) Убираем «Таблица 1»
+  const cards: Card[] = (cardsRaw || []).filter(
+    c => (c.front?.trim() ?? '') !== 'Таблица 1'
+  );
 
   return (
     <section className="space-y-6">
-      {/* ВАЖНО: не рендерим хлебные крошки/второй заголовок — лишний хедер исчезнет */}
+      {/* ВАЖНО: не рендерим никакие breadcrumb/второй хедер здесь */}
+      {/* Оставляем только сетку карточек */}
 
-      {/* Сетка карточек: 1 колонка на мобиле, 3 на десктопе */}
+      {/* 1 колонка на телефоне, 3 на десктопе */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
-        {cards.map((card) => (
+        {cards.map(card => (
           <article
             key={card.id}
             className="
@@ -70,16 +75,10 @@ export default async function DeckPage({ params }: { params: { slug: string } })
               p-6 flex flex-col justify-center text-center
             "
           >
-            {/* Лицевая сторона */}
             <div className="text-base md:text-sm sm:text-xs leading-tight font-medium text-gray-900 whitespace-pre-line">
               {card.front}
             </div>
 
-            {/* Если нужна подпись-подсказка о перевороте — раскомментируй
-            <div className="text-xs text-gray-500 mt-2">Нажмите, чтобы перевернуть</div>
-            */}
-
-            {/* Если нужно изображение под вопросом — раскомментируй */}
             {card.image_url && (
               <img
                 src={card.image_url}
