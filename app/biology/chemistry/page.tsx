@@ -1,11 +1,9 @@
-import { createClient } from "@/utils/supabase/server";
+import { supabase } from "@/lib/supabase";
 import DeckCard from "@/components/DeckCard";
 import FlashcardGrid from "@/components/FlashcardGrid";
 import StickyHeader from "@/components/StickyHeader";
 
 export default async function Page() {
-  const supabase = createClient();
-
   const { data: decks, error } = await supabase
     .from("decks")
     .select("*, cards (*)")
@@ -35,7 +33,6 @@ export default async function Page() {
     );
   }
 
-  // Если есть только одна колода — показать карточки сразу
   if (decks.length === 1) {
     const cards = decks[0].cards || [];
 
@@ -53,7 +50,6 @@ export default async function Page() {
     );
   }
 
-  // Иначе показать список всех колод
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Химический состав клетки — темы</h1>

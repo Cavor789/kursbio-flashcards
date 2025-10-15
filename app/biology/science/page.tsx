@@ -1,9 +1,7 @@
-import { createClient } from "@/utils/supabase/server";
+import { supabase } from "@/lib/supabase";
 import DeckCard from "@/components/DeckCard";
 
 export default async function Page() {
-  const supabase = createClient();
-
   const { data: list, error } = await supabase
     .from("decks")
     .select("*")
