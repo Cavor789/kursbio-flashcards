@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase";
 import DeckCard from "@/components/DeckCard";
 
 export default async function Page() {
-
   const { data: list, error } = await supabase
     .from("decks")
     .select("*")
