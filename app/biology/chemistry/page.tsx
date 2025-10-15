@@ -1,10 +1,9 @@
-import { createClient } from "@/utils/supabase/server";
+import { supabase } from "@/lib/supabase";
 import DeckCard from "@/components/DeckCard";
 import FlashcardGrid from "@/components/FlashcardGrid";
 import StickyHeader from "@/components/StickyHeader";
 
 export default async function Page() {
-  const supabase = createClient();
 
   const { data: decks, error } = await supabase
     .from("decks")
