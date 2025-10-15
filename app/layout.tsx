@@ -1,30 +1,31 @@
-import './globals.css';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+'use client';
 
-const inter = Inter({ subsets: ['cyrillic', 'latin'] });
+import { useSelectedLayoutSegments } from 'next/navigation';
+import React from 'react';
 
-export const metadata: Metadata = {
-  title: 'Kursbio Карточки',
-  description: 'Флеш-карточки по биологии — Kursbio',
-  alternates: { canonical: 'https://kursbio.ru/cards/bio' },
-  openGraph: {
-    title: 'Kursbio Карточки',
-    description: 'Флеш-карточки по биологии — Kursbio',
-    url: 'https://kursbio.ru/cards/bio',
-  },
-};
+// 💡 ВАЖНО: Вставь СВОЙ JSX баннера в место, отмеченное /* HERO */ ниже.
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function BiologyLayout({ children }: { children: React.ReactNode }) {
+  const segments = useSelectedLayoutSegments();
+  // segments:
+  //  []                         -> /biology (если есть index)
+  //  ["chemistry"]              -> /biology/chemistry
+  //  ["chemistry", "<slug>"]    -> /biology/chemistry/[slug]
+
+  const isChemistryRoot = segments.length === 1 && segments[0] === 'chemistry';
+  const showHero = isChemistryRoot; // показываем баннер только на /biology/chemistry
+
   return (
-    <html lang="ru">
-      <body className={`${inter.className} bg-[#f5f7fb] min-h-screen flex flex-col`}>
-        <Header />
-        <main className="flex-1 max-w-6xl mx-auto p-4">{children}</main>
-        <Footer />
-      </body>
-    </html>
+    <>
+      {showHero ? (
+        /* HERO */ (
+          // 👉 СЮДА ВСТАВЬ твой фиолетовый баннер (ровно тот JSX, что был раньше).
+          // Например: <SubjectHero subject="Химический состав клетки" />
+          <></>
+        )
+      ) : null}
+
+      {children}
+    </>
   );
 }
