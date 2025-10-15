@@ -20,8 +20,6 @@ type Card = {
 };
 
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
-
-// строка «Таблица 1» иногда приходит с переносами/подписью — возьмём первую строку
 const isTable1 = (front: string | null) => {
   const firstLine = (front ?? '').split('\n')[0];
   const n = norm(firstLine);
@@ -56,9 +54,26 @@ export default async function DeckPage({ params }: { params: { slug: string } })
 
   const cards: Card[] = (raw || []).filter(c => !isTable1(c.front));
 
+  // короткий заголовок для мини-хедера
+  const titleShort = (deck.title.split('→').pop() || deck.title).trim();
+
   return (
     <section className="space-y-6">
-      {/* Только сетка карточек, без второго хедера */}
+      {/* Липкий мини-хедер внутри колоды (мобилка/десктоп) */}
+      <div className="sticky top-0 z-20 -mt-6 pt-6">
+        <div className="rounded-xl border bg-white/90 backdrop-blur px-3 py-2 flex items-center justify-between">
+          <a href="/biology/chemistry" className="text-sm text-[#736ecc] hover:underline">← Назад</a>
+          <div className="text-sm font-medium truncate px-2">{titleShort}</div>
+          <button
+            className="text-sm text-gray-600 hover:underline"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            Наверх
+          </button>
+        </div>
+      </div>
+
+      {/* Сетка карточек: 1 колонка на мобиле, 3 на десктопе */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
         {cards.map(card => (
           <Flashcard
@@ -72,3 +87,4 @@ export default async function DeckPage({ params }: { params: { slug: string } })
     </section>
   );
 }
+
