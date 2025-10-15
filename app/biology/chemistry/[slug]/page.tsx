@@ -1,215 +1,95 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import TopNav from '@/components/TopNav';
-import AuthEmailModal from '@/components/AuthEmailModal';
-import { Heart } from 'lucide-react';
+import { notFound } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 type Deck = {
   id: string;
   title: string;
   slug: string;
   description: string | null;
-  cta_primary_text: string | null;
-  cta_primary_url: string | null;
-  cta_secondary_text: string | null;
-  cta_secondary_url: string | null;
+  is_public: boolean;
 };
 
 type Card = {
   id: string;
-  front: string;
-  back: string;
-  image_url: string | null;
-  seq: number;
+  front: string | null;
+  back: string | null;
+  image_url?: string | null;
 };
 
-export default function ChemistryDeckPage() {
-  const { slug } = useParams() as { slug: string };
-  const [deck, setDeck] = useState<Deck | null>(null);
-  const [cards, setCards] = useState<Card[]>([]);
-  const [user, setUser] = useState<any>(null);
-  const [favOpen, setFavOpen] = useState(false);
-  const [favSet, setFavSet] = useState<Set<string>>(new Set());
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const { data: deck } = await supabase
+    .from('decks')
+    .select('title, description')
+    .eq('slug', params.slug)
+    .single();
 
-  // текущая колода
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from('decks')
-        .select(`
-          id, title, slug, description,
-          cta_primary_text, cta_primary_url,
-          cta_secondary_text, cta_secondary_url
-        `)
-        .eq('slug', slug)
-        .single();
-      setDeck(data as Deck);
-    })();
-  }, [slug]);
+  if (!deck) return {};
 
-  // карточки
-  useEffect(() => {
-    if (!deck?.id) return;
-    (async () => {
-      const { data } = await supabase
-        .from('cards')
-        .select('id, front, back, image_url, seq')
-        .eq('deck_id', deck.id)
-        .order('seq', { ascending: true });
-      setCards((data as Card[]) || []);
-    })();
-  }, [deck?.id]);
-
-  // сессия
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-    })();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) =>
-      setUser(sess?.user || null)
-    );
-    return () => { sub.subscription.unsubscribe(); };
-  }, []);
-
-  // избранное
-  useEffect(() => {
-    (async () => {
-      if (!user) { setFavSet(new Set()); return; }
-      const { data } = await supabase.from('favorites').select('card_id').eq('user_id', user.id);
-      setFavSet(new Set((data || []).map((r: any) => r.card_id)));
-    })();
-  }, [user]);
-
-  const primaryText   = deck?.cta_primary_text   ?? 'Забрать конспект';
-  const primaryUrl    = deck?.cta_primary_url    ?? 'https://t.me/kursbio/11017';
-  const secondaryText = deck?.cta_secondary_text ?? 'Записаться на годовой курс';
-  const secondaryUrl  = deck?.cta_secondary_url  ?? 'https://kursbio.com/godege';
-  const topicTitle    = deck?.title?.split('→').pop()?.trim();
-
-  return (
-    <div className="space-y-6 font-[Inter]">
-      <TopNav topic={topicTitle || undefined} />
-
-      {/* Шапка + CTA */}
-      <div className="card">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <div className="text-xl font-semibold">{deck?.title ?? 'Колода'}</div>
-            <div className="text-sm text-gray-500">На лицевой стороне — вопрос, на обороте — ответ.</div>
-          </div>
-          <div className="flex gap-2">
-            <a href={primaryUrl} target="_blank" rel="noreferrer" className="btn btn-primary">{primaryText}</a>
-            <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn btn-white">{secondaryText}</a>
-          </div>
-        </div>
-      </div>
-
-      {/* Сетка карточек */}
-      <section>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cards.map((c) => (
-            <FlipCard
-              key={c.id}
-              c={c}
-              user={user}
-              favSet={favSet}
-              setFavSet={setFavSet}
-              setFavOpen={setFavOpen}
-            />
-          ))}
-        </div>
-        {cards.length === 0 && <div className="text-gray-500 mt-2 text-center">Нет карточек.</div>}
-      </section>
-
-      <AuthEmailModal open={favOpen} onClose={() => setFavOpen(false)} />
-    </div>
-  );
+  return {
+    title: `${(deck.title as string).split('→').pop()?.trim() || deck.title} — Kursbio`,
+    description: deck.description || 'Карточки по теме.',
+  };
 }
 
-/* -------- карточка -------- */
-function FlipCard({
-  c, user, favSet, setFavSet, setFavOpen,
-}: {
-  c: Card; user: any;
-  favSet: Set<string>;
-  setFavSet: (s: Set<string>) => void;
-  setFavOpen: (v: boolean) => void;
-}) {
-  const [flip, setFlip] = useState(false);
-  const [isFav, setIsFav] = useState<boolean>(favSet.has(c.id));
+export default async function DeckPage({ params }: { params: { slug: string } }) {
+  // Находим колоду по slug
+  const { data: deck } = await supabase
+    .from('decks')
+    .select('id, title, description, is_public')
+    .eq('slug', params.slug)
+    .single<Deck>();
 
-  useEffect(() => { setIsFav(favSet.has(c.id)); }, [favSet, c.id]);
+  if (!deck || !deck.is_public) return notFound();
 
-  async function toggleFav(e: any) {
-    e.stopPropagation();
-    if (!user) { setFavOpen(true); return; }
-    if (isFav) {
-      await supabase.from('favorites').delete().eq('card_id', c.id).eq('user_id', user.id);
-      const ns = new Set(favSet); ns.delete(c.id); setFavSet(ns);
-    } else {
-      await supabase.from('favorites').insert({ card_id: c.id, user_id: user.id });
-      const ns = new Set(favSet); ns.add(c.id); setFavSet(ns);
-    }
-  }
+  // Подтягиваем карточки этой колоды
+  const { data: cardsRaw } = await supabase
+    .from('cards')
+    .select('id, front, back, image_url')
+    .eq('deck_id', deck.id);
 
-  // ——— размер «как игральная карта»: на мобилке ~70vh, ширина почти вся, на десктопе прежний размер
-  const cardContainer = `
-    h-full [perspective:1200px]
-  `;
-
-  const cardPanel = `
-    relative h-full
-    min-h-[70vh] sm:min-h-[420px]
-    w-full
-    rounded-2xl bg-white shadow-[0_6px_20px_rgba(0,0,0,0.08)]
-    [transform-style:preserve-3d] transition-transform duration-500
-    ${flip ? '[transform:rotateY(180deg)]' : ''}
-  `;
+  const cards: Card[] = (cardsRaw || [])
+    // убираем карточку «Таблица 1»
+    .filter((c) => (c.front?.trim() ?? '') !== 'Таблица 1');
 
   return (
-    <div className={cardContainer} onClick={() => setFlip(!flip)}>
-      <div className={cardPanel}>
-        {/* FRONT */}
-        <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
-          <button
-            onClick={toggleFav}
-            className="absolute top-3 right-3 rounded-full p-1 bg-white/90 hover:bg-white shadow pointer-events-auto"
-            aria-label={isFav ? 'Убрать из избранного' : 'В избранное'}
+    <section className="space-y-6">
+      {/* ВАЖНО: не рендерим хлебные крошки/второй заголовок — лишний хедер исчезнет */}
+
+      {/* Сетка карточек: 1 колонка на мобиле, 3 на десктопе */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
+        {cards.map((card) => (
+          <article
+            key={card.id}
+            className="
+              w-full md:w-[90%] max-w-[460px]
+              h-[70vh]
+              rounded-2xl border bg-white shadow-sm hover:shadow-md
+              transition-transform duration-300 hover:scale-[1.01]
+              p-6 flex flex-col justify-center text-center
+            "
           >
-            <Heart className="w-6 h-6" fill={isFav ? '#736ecc' : 'none'} color={isFav ? '#736ecc' : '#9ca3af'} />
-          </button>
-
-          <div className="h-full flex flex-col items-center justify-center gap-4 pt-8 text-center">
-            <div className="font-semibold text-base sm:text-lg text-gray-800">
-              {c.front}
-              {c.image_url && (
-                <div className="mt-4">
-                  {/* Картинка под вопросом: вписываем, не наезжает на текст */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={c.image_url}
-                    alt=""
-                    className="max-h-[28vh] sm:max-h-56 w-auto mx-auto rounded-lg object-contain"
-                    loading="lazy"
-                  />
-                </div>
-              )}
+            {/* Лицевая сторона */}
+            <div className="text-base md:text-sm sm:text-xs leading-tight font-medium text-gray-900 whitespace-pre-line">
+              {card.front}
             </div>
-            <div className="text-xs text-gray-500">Нажмите, чтобы перевернуть</div>
-          </div>
-        </div>
 
-        {/* BACK */}
-        <div className="absolute inset-0 p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <div className="h-full flex items-center justify-center">
-            <div className="text-gray-800 text-base leading-relaxed text-center whitespace-pre-wrap">{c.back}</div>
-          </div>
-        </div>
+            {/* Если нужна подпись-подсказка о перевороте — раскомментируй
+            <div className="text-xs text-gray-500 mt-2">Нажмите, чтобы перевернуть</div>
+            */}
+
+            {/* Если нужно изображение под вопросом — раскомментируй */}
+            {card.image_url && (
+              <img
+                src={card.image_url}
+                alt=""
+                className="mt-4 mx-auto max-h-[28vh] object-contain rounded-lg"
+              />
+            )}
+          </article>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
