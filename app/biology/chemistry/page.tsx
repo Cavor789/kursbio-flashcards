@@ -22,32 +22,29 @@ export default async function ChemistryIndex() {
 
   return (
     <section className="space-y-6">
-      <div className="text-sm text-gray-600">
-        <Link href="/cards" className="hover:underline">Карточки</Link>
-        <span className="text-gray-400"> / </span>
-        <Link href="/biology" className="hover:underline">Общая биология</Link>
-        <span className="text-gray-400"> / </span>
-        <span className="font-medium">Химический состав клетки</span>
-      </div>
-
-      <h1 className="text-2xl font-semibold">Химический состав клетки — колоды</h1>
+      {/* ВАЖНО: никакого второго хедера/крошек здесь не рендерим */}
 
       {list.length === 0 && (
-        <div className="text-gray-500">Пока пусто. Проверь, что колода создана и <i>is_public = true</i>.</div>
+        <div className="text-gray-500">
+          Пока пусто. Проверь, что колода создана и <i>is_public = true</i>.
+        </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+      {/* 1 колонка на телефоне, 3 на десктопе; плитки крупнее */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
         {list.map((d: any) => (
           <Link
             key={d.id}
             href={`/biology/chemistry/${d.slug}`}
-            className="block p-5 rounded-2xl border bg-white hover:shadow"
+            className="
+              w-full md:w-[90%] max-w-[460px]
+              h-[40vh]
+              rounded-2xl border bg-white shadow-sm hover:shadow-md
+              transition-transform duration-300 hover:scale-[1.01]
+              p-6 flex flex-col justify-center text-center
+            "
           >
-            <div className="text-lg font-medium">{labelFromTitle(d.title)}</div>
-            <div className="text-sm text-gray-500 mt-1">{d.description || 'Открыть колоду'}</div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
+            <div className="text-base md:text-sm leading-tight font-medium">
+              {labelFromTitle(d.title)}
+            </div>
+            <div className="text-sm md:text-xs text-gray-
