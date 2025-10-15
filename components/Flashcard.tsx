@@ -1,7 +1,7 @@
-// components/Flashcard.tsx
+// components/FlipCard.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Props = {
   front: string | null;
@@ -11,167 +11,95 @@ type Props = {
 
 const IMG_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
 
-export default function Flashcard({ front, back, image_url }: Props) {
+export default function FlipCard({ front, back, image_url }: Props) {
   const [flipped, setFlipped] = useState(false);
-  const timerRef = useRef<number | null>(null);
 
-  // авто-возврат через 10 секунд после переворота
+  // авто-возврат через 10 секунд
   useEffect(() => {
-    if (flipped) {
-      timerRef.current && window.clearTimeout(timerRef.current);
-      timerRef.current = window.setTimeout(() => setFlipped(false), 10000);
-    }
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    };
+    if (!flipped) return;
+    const t = setTimeout(() => setFlipped(false), 10000);
+    return () => clearTimeout(t);
   }, [flipped]);
 
-  // выцепим первую ссылку — если это картинка, покажем под текстом
+  // первая ссылка в тексте — если это картинка, покажем под текстом
   const firstUrl = useMemo(() => {
     const m = (front || '').match(/https?:\/\/\S+/);
     return m?.[0] ?? null;
   }, [front]);
 
-  const canInlineImage =
-    !image_url && firstUrl && (() => {
-      try {
-        const u = new URL(firstUrl);
-        return IMG_EXT.test(u.pathname || '');
-      } catch {
-        return false;
-      }
-    })();
+  const canInlineImage = useMemo(() => {
+    if (image_url) return false;
+    if (!firstUrl) return false;
+    try {
+      const u = new URL(firstUrl);
+      return IMG_EXT.test(u.pathname || '');
+    } catch {
+      return false;
+    }
+  }, [firstUrl, image_url]);
 
   const showImage = image_url || (canInlineImage ? firstUrl : null);
 
-  // остановить переворот, если пользователь скроллит внутри карточки/жмёт на ссылку/картинку
-  function stopProp(e: React.MouseEvent) {
-    e.stopPropagation();
-  }
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="flashcard-wrapper">
+    <div className="w-full md:w-[90%] max-w-[520px] h-[70vh]">
       <article
-        className={`flashcard ${flipped ? 'flipped' : ''}`}
+        className={`relative h-full cursor-pointer rounded-2xl bg-white border
+                    shadow-[0_6px_20px_rgba(0,0,0,0.08)]
+                    [transform-style:preserve-3d] transition-transform duration-500
+                    ${flipped ? '[transform:rotateY(180deg)]' : ''}`}
         onClick={() => setFlipped(v => !v)}
         role="button"
         aria-pressed={flipped}
         title={flipped ? 'Нажмите, чтобы вернуть вопрос' : 'Нажмите, чтобы перевернуть'}
       >
-        <div className="face front">
-          <div className="inner scrollable" onClick={stopProp}>
-            <div className="t-text">{front}</div>
+        {/* FRONT */}
+        <div className="absolute inset-0 p-5 [backface-visibility:hidden]">
+          <div className="h-full flex flex-col gap-3 pt-6">
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="font-medium text-base md:text-sm text-gray-800 leading-tight whitespace-pre-line break-words">
+                {front}
+              </div>
 
-            {showImage && (
-              <img
-                src={showImage}
-                alt=""
-                className="t-image"
-                onClick={stopProp}
-              />
-            )}
+              {showImage && (
+                <img
+                  src={showImage}
+                  alt=""
+                  className="mt-3 mx-auto max-h-[28vh] object-contain rounded-lg"
+                  onClick={stop}
+                />
+              )}
 
-            {firstUrl && !canInlineImage && (
-              <a
-                href={firstUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="t-link"
-                onClick={stopProp}
-              >
-                {firstUrl}
-              </a>
-            )}
+              {firstUrl && !canInlineImage && (
+                <a
+                  href={firstUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block text-xs text-blue-600 underline break-all"
+                  onClick={stop}
+                >
+                  {firstUrl}
+                </a>
+              )}
+            </div>
+
+            <div className="text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
           </div>
-          <div className="hint">Нажмите, чтобы перевернуть</div>
         </div>
 
-        <div className="face back">
-          <div className="inner scrollable" onClick={stopProp}>
-            <div className="t-text">{back || '—'}</div>
+        {/* BACK */}
+        <div className="absolute inset-0 p-5 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="h-full flex flex-col gap-3 pt-6">
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="text-gray-800 text-base md:text-sm leading-tight whitespace-pre-line break-words text-center">
+                {back || '—'}
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 text-center">Нажмите, чтобы вернуть вопрос</div>
           </div>
-          <div className="hint">Нажмите, чтобы вернуть вопрос</div>
         </div>
       </article>
-
-      {/* Стили flip-анимации и вёрстки карточки */}
-      <style jsx>{`
-        .flashcard-wrapper {
-          width: 100%;
-          max-width: 520px;
-          height: 70vh;
-        }
-        .flashcard {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          border-radius: 1rem;
-          background: white;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-          transition: transform 0.6s;
-          transform-style: preserve-3d;
-          cursor: pointer;
-        }
-        .flashcard:hover {
-          transform: scale(1.01);
-        }
-        .flashcard.flipped {
-          transform: rotateY(180deg);
-        }
-        .face {
-          position: absolute;
-          inset: 0;
-          backface-visibility: hidden;
-          border-radius: 1rem;
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-        .back {
-          transform: rotateY(180deg);
-        }
-        .inner.scrollable {
-          flex: 1;
-          overflow-y: auto;
-          padding-right: 0.25rem;
-        }
-        .t-text {
-          white-space: pre-line;
-          word-break: break-word;
-          font-size: 1rem;
-          line-height: 1.35;
-          color: #111827;
-          font-weight: 500;
-        }
-        @media (max-width: 768px) {
-          .t-text { font-size: 0.95rem; }
-        }
-        .t-image {
-          margin-top: 1rem;
-          max-height: 28vh;
-          object-fit: contain;
-          border-radius: 0.5rem;
-          display: block;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .t-link {
-          display: block;
-          margin-top: 0.5rem;
-          font-size: 0.75rem;
-          color: #2563eb;
-          text-decoration: underline;
-          word-break: break-all;
-        }
-        .hint {
-          text-align: center;
-          color: #6b7280;
-          font-size: 0.75rem;
-          padding-top: 0.5rem;
-        }
-      `}</style>
     </div>
   );
 }
