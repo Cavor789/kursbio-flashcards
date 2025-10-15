@@ -1,4 +1,3 @@
-// components/FlipCard.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -11,17 +10,17 @@ type Props = {
 
 const IMG_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
 
-export default function FlipCard({ front, back, image_url }: Props) {
+export default function Flashcard({ front, back, image_url }: Props) {
   const [flipped, setFlipped] = useState(false);
 
-  // авто-возврат через 10 секунд
+  // Автоматический возврат через 10 секунд
   useEffect(() => {
     if (!flipped) return;
-    const t = setTimeout(() => setFlipped(false), 10000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setFlipped(false), 10000);
+    return () => clearTimeout(timer);
   }, [flipped]);
 
-  // первая ссылка в тексте — если это картинка, покажем под текстом
+  // Извлекаем первую ссылку (на случай картинки)
   const firstUrl = useMemo(() => {
     const m = (front || '').match(/https?:\/\/\S+/);
     return m?.[0] ?? null;
@@ -39,7 +38,6 @@ export default function FlipCard({ front, back, image_url }: Props) {
   }, [firstUrl, image_url]);
 
   const showImage = image_url || (canInlineImage ? firstUrl : null);
-
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
@@ -84,7 +82,9 @@ export default function FlipCard({ front, back, image_url }: Props) {
               )}
             </div>
 
-            <div className="text-xs text-gray-500 text-center">Нажмите, чтобы перевернуть</div>
+            <div className="text-xs text-gray-500 text-center">
+              Нажмите, чтобы перевернуть
+            </div>
           </div>
         </div>
 
@@ -96,7 +96,9 @@ export default function FlipCard({ front, back, image_url }: Props) {
                 {back || '—'}
               </div>
             </div>
-            <div className="text-xs text-gray-500 text-center">Нажмите, чтобы вернуть вопрос</div>
+            <div className="text-xs text-gray-500 text-center">
+              Нажмите, чтобы вернуть вопрос
+            </div>
           </div>
         </div>
       </article>
