@@ -9,12 +9,10 @@ export const metadata = {
 };
 
 function labelFromTitle(title: string) {
-  // берём кусок после последней стрелки
   return (title.split('→').pop() || title).trim();
 }
 
 export default async function ChemistryIndex() {
-  // берём все публичные колоды, начинающиеся на «Общая биология → Химический состав клетки»
   const { data } = await supabase
     .from('decks')
     .select('id, title, slug, description, is_public')
