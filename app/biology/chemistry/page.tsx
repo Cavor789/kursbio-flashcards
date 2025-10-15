@@ -59,4 +59,41 @@ export default async function Page() {
     return (
       <section className="space-y-4">
         {renderHeader()}
-        <div className="rounded-xl border bg-white p-4 text-sm text-g
+        <div className="rounded-xl border bg-white p-4 text-sm text-gray-600">
+          Пока пусто. Проверь, что колода создана и доступна публично.
+        </div>
+      </section>
+    );
+  }
+
+  if (decks.length === 1) {
+    const cards = (decks[0].cards || []).filter(
+      (card) => card.front?.trim() && card.back?.trim()
+    );
+
+    return (
+      <section className="space-y-4">
+        {renderHeader()}
+        <StickyHeader deck={decks[0]} />
+        {cards.length === 0 ? (
+          <div className="rounded-xl border bg-white p-4 text-sm text-gray-600">
+            В этой колоде пока нет карточек.
+          </div>
+        ) : (
+          <FlashcardGrid cards={cards} />
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      {renderHeader()}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {decks.map((deck) => (
+          <DeckCard key={deck.id} deck={deck} />
+        ))}
+      </div>
+    </section>
+  );
+}
