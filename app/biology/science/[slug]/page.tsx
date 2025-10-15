@@ -129,21 +129,6 @@ export default function ScienceTopicPage() {
         <span className="font-medium">{topicTitle || 'Тема'}</span>
       </div>
 
-      {/* Шапка страницы + CTA */}
-      <div className="card">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <div className="text-xl font-semibold">{deck?.title ?? 'Колода'}</div>
-            <div className="text-sm text-gray-500">На лицевой стороне — вопрос, на обороте — ответ.</div>
-          </div>
-          <div className="flex gap-2">
-            <a href={primaryUrl} target="_blank" rel="noreferrer" className="btn btn-primary">{primaryText}</a>
-            <a href={secondaryUrl} target="_blank" rel="noreferrer" className="btn">{secondaryText}</a>
-            <a href={thirdUrl} target="_blank" rel="noreferrer" className="btn">{thirdText}</a>
-          </div>
-        </div>
-      </div>
-
       {/* Единственные фильтры — 4 темы общей биологии */}
       <div className="card">
         <div className="flex items-center justify-between flex-wrap gap-2">
