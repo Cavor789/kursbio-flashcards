@@ -61,28 +61,32 @@ export default async function DeckPage({ params }: { params: { slug: string } })
       {/* 1 колонка на мобиле, 3 на десктопе; большие карточки */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
         {cards.map(card => (
-          <article
-            key={card.id}
-            className="
-              w-full md:w-[90%] max-w-[460px]
-              h-[70vh]
-              rounded-2xl border bg-white shadow-sm hover:shadow-md
-              transition-transform duration-300 hover:scale-[1.01]
-              p-6 flex flex-col justify-center text-center
-            "
-          >
-            <div className="text-base md:text-sm sm:text-xs leading-tight font-medium text-gray-900 whitespace-pre-line">
-              {card.front}
-            </div>
+<article
+  key={card.id}
+  className="
+    w-full md:w-[90%] max-w-[520px]
+    h-[70vh]
+    rounded-2xl border bg-white shadow-sm hover:shadow-md
+    transition-transform duration-300 hover:scale-[1.01]
+    p-6 flex flex-col
+  "
+>
+  {/* содержимое со скроллом, чтобы ничего не «выпирало» */}
+  <div className="flex-1 overflow-y-auto pr-2">
+    <div className="text-base md:text-sm sm:text-xs leading-tight font-medium text-gray-900 whitespace-pre-line break-words">
+      {card.front}
+    </div>
 
-            {card.image_url && (
-              <img
-                src={card.image_url}
-                alt=""
-                className="mt-4 mx-auto max-h-[28vh] object-contain rounded-lg"
-              />
-            )}
-          </article>
+    {card.image_url && (
+      <img
+        src={card.image_url}
+        alt=""
+        className="mt-4 mx-auto max-h-[28vh] object-contain rounded-lg"
+      />
+    )}
+  </div>
+</article>
+
         ))}
       </div>
     </section>
