@@ -38,13 +38,23 @@ export default async function ChemistryIndex() {
             href={`/biology/chemistry/${d.slug}`}
             className="
               w-full md:w-[90%] max-w-[460px]
-              h-[40vh]
+              h-[70vh]
               rounded-2xl border bg-white shadow-sm hover:shadow-md
               transition-transform duration-300 hover:scale-[1.01]
               p-6 flex flex-col justify-center text-center
             "
           >
-            <div className="text-base md:text-sm leading-tight font-medium">
+            <div className="text-base md:text-lg leading-tight font-medium mb-2">
               {labelFromTitle(d.title)}
             </div>
-            <div className="text-sm md:text-xs text-gray-
+            {d.description && (
+              <div className="text-sm md:text-base text-gray-600">
+                {d.description}
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
