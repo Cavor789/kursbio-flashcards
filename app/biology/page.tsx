@@ -1,8 +1,10 @@
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+export const metadata = {
+  title: 'Общая биология — разделы | Kursbio',
+};
 
-export default async function BiologyIndex() {
+export default function BiologyIndex() {
   return (
     <section className="space-y-6">
       <div className="text-sm text-gray-600">
@@ -13,20 +15,20 @@ export default async function BiologyIndex() {
 
       <h1 className="text-2xl font-semibold">Общая биология — разделы</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Биология как наука */}
-        <Link href="/biology/science" className="block p-5 rounded-2xl border hover:shadow bg-white">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link href="/biology/science" className="block p-5 rounded-2xl border bg-white hover:shadow">
           <div className="text-lg font-medium">Биология как наука</div>
           <div className="text-sm text-gray-500 mt-1">
-            Науки, Методы, Уровни организации, Признаки живого.
+            Науки, методы, уровни организации, признаки живого.
           </div>
         </Link>
 
-        {/* Заглушки под будущие крупные разделы */}
-        {/* <Link href="/biology/botany" className="block p-5 rounded-2xl border hover:shadow bg-white">
-          <div className="text-lg font-medium">Ботаника</div>
-          <div className="text-sm text-gray-500 mt-1">Темы и карточки по ботанике.</div>
-        </Link> */}
+        <Link href="/biology/chemistry" className="block p-5 rounded-2xl border bg-white hover:shadow">
+          <div className="text-lg font-medium">Химический состав клетки</div>
+          <div className="text-sm text-gray-500 mt-1">
+            Вода, соли, органические вещества, аминокислоты и др.
+          </div>
+        </Link>
       </div>
     </section>
   );
