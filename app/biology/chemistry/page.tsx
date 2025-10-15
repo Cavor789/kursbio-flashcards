@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase";
 import DeckCard from "@/components/DeckCard";
 import FlashcardGrid from "@/components/FlashcardGrid";
 import StickyHeader from "@/components/StickyHeader";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default async function Page() {
@@ -14,15 +13,33 @@ export default async function Page() {
     .order("title", { ascending: true });
 
   const renderHeader = () => (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+    <div className="mb-4 space-y-2">
       <h1 className="text-2xl font-semibold">Химический состав клетки</h1>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/biology">← К списку тем</Link>
-        </Button>
-        <Button variant="outline" size="sm">Избранное</Button>
-        <Button variant="outline" size="sm">Конспект по теме</Button>
-        <Button variant="default" size="sm">Записаться на годовой курс</Button>
+        <Link
+          href="/biology"
+          className="inline-flex items-center rounded border px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
+        >
+          ← К списку тем
+        </Link>
+        <Link
+          href="#"
+          className="inline-flex items-center rounded border px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
+        >
+          Избранное
+        </Link>
+        <Link
+          href="#"
+          className="inline-flex items-center rounded border px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
+        >
+          Конспект по теме
+        </Link>
+        <Link
+          href="#"
+          className="inline-flex items-center rounded bg-black px-3 py-1 text-sm text-white hover:opacity-80"
+        >
+          Записаться на годовой курс
+        </Link>
       </div>
     </div>
   );
