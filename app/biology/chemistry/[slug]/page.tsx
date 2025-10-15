@@ -1,7 +1,7 @@
 // app/biology/chemistry/[slug]/page.tsx
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
-import FlipCard from '@/components/FlipCard';
+import Flashcard from '@/components/Flashcard';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,12 +54,11 @@ export default async function DeckPage({ params }: { params: { slug: string } })
     .order('seq', { ascending: true });
 
   const cards: Card[] = (cardsRaw || []).filter(c => !isTable1(c.front));
-
   const titleShort = (deck.title.split('→').pop() || deck.title).trim();
 
   return (
     <section className="space-y-6">
-      {/* Липкий мини-хедер: назад / наверх */}
+      {/* Липкий мини-хедер */}
       <div className="sticky top-0 z-20 -mt-6 pt-6">
         <div className="rounded-xl border bg-white/90 backdrop-blur px-3 py-2 flex items-center justify-between">
           <a href="/biology/chemistry" className="text-sm text-[#736ecc] hover:underline">← Назад</a>
@@ -75,12 +74,12 @@ export default async function DeckPage({ params }: { params: { slug: string } })
 
       {/* Сетка карточек */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
-        {cards.map(card => (
-          <FlipCard
-            key={card.id}
-            front={card.front}
-            back={card.back}
-            image_url={card.image_url ?? undefined}
+        {cards.map(c => (
+          <Flashcard
+            key={c.id}
+            front={c.front}
+            back={c.back}
+            image_url={c.image_url ?? undefined}
           />
         ))}
       </div>
