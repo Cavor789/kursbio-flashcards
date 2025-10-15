@@ -1,41 +1,85 @@
+/* app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---- CSS-переменные проекта ---- */
-:root {
-  --brand: #736ecc;
-  --brand-dark: #5f59c0;
-  --bg: #f5f7fb;
+/* Гладкий скролл везде */
+html {
+  scroll-behavior: smooth;
 }
 
-/* ---- Базовые стили ---- */
-html, body { height: 100%; }
-body { background: var(--bg); }
-
-/* ---- Карточки / контейнеры ---- */
-.card { @apply bg-white rounded-2xl p-4 shadow-lg; }
-
-/* ---- Кнопки (один набор, без дублей!) ---- */
-.btn { 
-  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition;
-}
-.btn-primary { 
-  @apply text-white; 
-  background: var(--brand);
-}
-.btn-primary:hover { 
-  background: var(--brand-dark);
-}
-.btn-white { 
-  @apply bg-white text-[#373737] hover:bg-gray-100;
-}
-.btn-ghost { 
-  @apply bg-white border border-gray-200;
+/* Базовая типографика и сглаживание шрифтов */
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ---- Ссылки по умолчанию (чуть заметнее) ---- */
-a.link { @apply text-[#736ecc] hover:underline; }
+/* Ссылки по умолчанию — без лишней яркости */
+a {
+  @apply text-inherit;
+  text-decoration: none;
+}
+a:focus-visible {
+  outline: 2px solid #736ecc55;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 
-/* ---- Мелкие утилиты ---- */
-.badge { @apply inline-flex items-center px-2 py-0.5 text-xs rounded-md bg-gray-100 text-gray-700; }
+/* Кнопки — без выделения текста при тапе */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Универсальная «карточная» тень (мягче на мобильных) */
+@layer utilities {
+  .shadow-card {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  }
+}
+
+/* Хелперы для 3D-флипа на мобильных (iOS особенно) */
+.flip-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Слегка более удобные скроллбары на десктопе */
+@media (pointer: fine) {
+  .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cfd3d9 transparent;
+  }
+  .scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #cfd3d9;
+    border-radius: 9999px;
+  }
+  .scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Внутренние скроллы внутри карточек — чуть плавнее */
+.inner-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Утилиты для «чипов» в фиолетовом баннере */
+.hero-chip {
+  @apply px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 transition-colors;
+}
+
+/* Контейнер главного контента (на случай если где-то нет main) */
+.page-container {
+  @apply max-w-6xl mx-auto px-4 py-6;
+}
