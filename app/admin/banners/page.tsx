@@ -1,11 +1,9 @@
-'use client';
-
-export default function AdminBannersPage() {
+export default function BannersPage() {
   return (
-    <div className="p-6">
+    <div>
       <h1 className="text-2xl font-bold mb-6">Управление баннерами</h1>
       <div className="bg-white rounded-lg shadow p-6">
-        <p>Страница управления баннерами будет доступна в ближайшее время.</p>
+        <p>Функционал управления баннерами находится в разработке.</p>
       </div>
     </div>
   );
