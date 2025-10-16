@@ -1,0 +1,1 @@
+// supabase/migrations/005_create_banners.sql

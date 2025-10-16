@@ -1,0 +1,1 @@
+// supabase/migrations/004_create_favorites.sql

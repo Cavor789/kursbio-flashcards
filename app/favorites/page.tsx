@@ -1,0 +1,1 @@
+// app/favorites/page.tsx

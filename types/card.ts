@@ -1,0 +1,1 @@
+// types/card.ts

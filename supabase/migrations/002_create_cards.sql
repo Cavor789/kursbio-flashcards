@@ -1,0 +1,1 @@
+// supabase/migrations/002_create_cards.sql

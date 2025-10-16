@@ -1,0 +1,1 @@
+// types/banner.ts

@@ -1,0 +1,1 @@
+// app/admin/banners/page.tsx

@@ -1,0 +1,1 @@
+// components/Flashcard.tsx

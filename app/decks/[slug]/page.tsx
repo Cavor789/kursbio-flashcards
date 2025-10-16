@@ -1,0 +1,1 @@
+// app/decks/[slug]/page.tsx
